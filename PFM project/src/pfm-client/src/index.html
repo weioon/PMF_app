@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>MyPFM — Bilingual Personal Financial Management (EN / 中文)</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .numpad-key:active, .tap-scale:active { transform: scale(0.97); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-28 select-none sm:select-auto">
+
+  <!-- Top Mobile App Bar -->
+  <header class="sticky top-0 z-40 backdrop-blur-lg bg-slate-900/95 border-b border-slate-800 px-3.5 py-2.5">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-black text-slate-950 text-sm shadow-md">
+          RM
+        </div>
+        <div class="truncate">
+          <h1 id="app-title" class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate"></h1>
+          <p id="app-subtitle" class="text-[11px] text-slate-400 truncate"></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Alert Bell Badge -->
+        <button onclick="switchTab('alerts')" class="tap-scale relative px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          <span id="lbl-alert-bell" class="hidden xs:inline"></span>
+          <span id="badge-alert-count" class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">0</span>
+        </button>
+
+        <!-- 1-Tap EN / 中文 Language Switcher -->
+        <div class="inline-flex rounded-xl bg-slate-800 p-0.5 border border-slate-700">
+          <button id="btn-lang-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all">EN</button>
+          <button id="btn-lang-zh" onclick="setLanguage('zh-CN')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all">中文</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Sub-Navigation Pills for Secondary Views -->
+    <nav class="max-w-5xl mx-auto mt-2.5 flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('categories')" id="tab-btn-categories" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('envelopes')" id="tab-btn-envelopes" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('installments')" id="tab-btn-installments" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('asnb')" id="tab-btn-asnb" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('alerts')" id="tab-btn-alerts" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+    </nav>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-3.5 pt-4 space-y-5">
+    <!-- TAB 1: 4-PILLAR ROLL-UP DASHBOARD & DIRECT ACCOUNT BALANCE EDITOR -->
+    <section id="view-dashboard" class="space-y-4">
+      <div id="kpi-cards-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5"></div>
+
+      <!-- 4-Pillar Filter & Account List (Tap any account to edit balance!) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="pillars-section-title" class="text-sm font-extrabold text-white"></h2>
+            <p id="pillars-edit-hint" class="text-[11px] text-emerald-400 font-medium"></p>
+          </div>
+          <button onclick="openCreateAccountModal()" id="btn-add-custom-acc" class="tap-scale px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-extrabold text-xs shadow"></button>
+        </div>
+
+        <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="pillar-selector-tabs"></div>
+        <div id="pillars-rollup-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
+      </div>
+
+      <!-- Pending Split-Bill Reimbursements & LHDN Tax Relief Quick View -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <h3 id="reimbursements-title" class="text-sm font-bold text-white mb-2.5"></h3>
+          <div id="reimbursements-list" class="space-y-2"></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+          <h3 id="tax-view-title" class="text-sm font-bold text-white mb-2.5"></h3>
+          <div id="tax-buckets-container" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CATEGORY ROLL-UP SUMMARIES & VELOCITY DAILY CAPS -->
+    <section id="view-categories" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <h2 id="cat-rollup-title" class="text-base font-bold text-white mb-1"></h2>
+        <p id="cat-rollup-subtitle" class="text-xs text-slate-400 mb-3.5"></p>
+        <div id="category-rollup-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: 30-DAY CASHFLOW PROJECTION CALENDAR -->
+    <section id="view-calendar" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+        <div>
+          <h2 id="cal-view-title" class="text-base font-bold text-white"></h2>
+          <p id="cal-view-subtitle" class="text-xs text-slate-400"></p>
+        </div>
+        <div id="cashflow-calendar-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: VIRTUAL ENVELOPES (SINKING FUNDS) -->
+    <section id="view-envelopes" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <h2 id="env-view-title" class="text-base font-bold text-white mb-1"></h2>
+        <p id="env-formula-bar" class="text-[11px] font-mono text-emerald-300 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 mb-3.5 break-words"></p>
+        <div id="envelopes-breakdown-container" class="space-y-3.5"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: INSTALLMENT SCHEDULE GENERATOR (SPAYLATER RM 150 / 3M) & DSR % -->
+    <section id="view-installments" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+          <div>
+            <h2 id="inst-view-title" class="text-base font-bold text-white"></h2>
+            <p id="inst-view-subtitle" class="text-xs text-slate-400"></p>
+          </div>
+          <button onclick="createSpayLater150Plan()" id="btn-create-spaylater" class="tap-scale px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-bold shadow"></button>
+        </div>
+        <div id="dsr-gauge-panel" class="mb-3.5"></div>
+        <div id="installment-plans-container" class="space-y-3.5"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: ASNB DIVIDEND PROJECTOR & DAILY COMPOUNDING VIEW -->
+    <section id="view-asnb" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="asnb-view-title" class="text-base font-bold text-white"></h2>
+            <p id="asnb-rule-formula" class="text-[11px] font-mono text-teal-300 mt-0.5"></p>
+          </div>
+          <button onclick="simulateAfter1stAsnbDeposit()" id="btn-sim-asnb-after1st" class="tap-scale px-3 py-1.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-bold"></button>
+        </div>
+        <div id="asnb-cards-container"></div>
+      </div>
+    </section>
+
+    <!-- TAB 7: ALERT NOTIFICATION CENTER (RULE A, B, C, D & TIMING TIPS) -->
+    <section id="view-alerts" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="alerts-center-title" class="text-base font-bold text-white"></h2>
+            <p id="alerts-center-subtitle" class="text-xs text-slate-400"></p>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="simulateTngDropBelow10()" id="btn-sim-tng" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-semibold"></button>
+            <button onclick="simulateBankAAutoDebitShortfall()" id="btn-sim-autodebit" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-200 text-xs font-semibold"></button>
+            <button onclick="resetGuardrailDemo()" id="btn-sim-reset" class="px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold"></button>
+          </div>
+        </div>
+        <div id="alerts-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL 1: EDIT ACCOUNT BALANCE, FLOOR, ENVELOPES & AUTO-DEBITS (BOTTOM SHEET) -->
+  <div id="edit-account-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span id="edit-acc-pillar-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300"></span>
+          <h3 id="edit-acc-modal-title" class="text-base font-extrabold text-white mt-1"></h3>
+        </div>
+        <button onclick="closeEditAccountModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label id="lbl-edit-name-en" class="block text-slate-400 mb-1 font-semibold"></label>
+          <input id="inp-edit-name-en" type="text" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-sm focus:border-emerald-400 outline-none" />
+        </div>
+        <div>
+          <label id="lbl-edit-name-zh" class="block text-slate-400 mb-1 font-semibold"></label>
+          <input id="inp-edit-name-zh" type="text" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-sm focus:border-emerald-400 outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label id="lbl-edit-balance" class="block text-emerald-300 mb-1 font-bold"></label>
+            <input id="inp-edit-balance" type="number" step="0.01" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-emerald-500/50 text-emerald-400 font-black text-base focus:border-emerald-400 outline-none" />
+          </div>
+          <div id="wrap-edit-min-floor">
+            <label id="lbl-edit-floor" class="block text-rose-300 mb-1 font-bold"></label>
+            <input id="inp-edit-floor" type="number" step="0.01" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-base focus:border-rose-400 outline-none" />
+          </div>
+        </div>
+
+        <div id="wrap-edit-asnb-fields" class="hidden grid grid-cols-2 gap-2.5 pt-1">
+          <div>
+            <label id="lbl-edit-lowest-bal" class="block text-teal-300 mb-1 font-bold"></label>
+            <input id="inp-edit-lowest-bal" type="number" step="0.01" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-teal-500/40 text-teal-300 font-bold text-sm outline-none" />
+          </div>
+          <div>
+            <label id="lbl-edit-rate" class="block text-slate-400 mb-1 font-bold"></label>
+            <input id="inp-edit-rate" type="number" step="0.01" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-sm outline-none" />
+          </div>
+        </div>
+
+        <!-- Quick Virtual Envelope Editor inside Liquid Account -->
+        <div id="wrap-edit-envelopes" class="hidden pt-2 border-t border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="lbl-edit-env-header" class="font-bold text-sky-300"></span>
+            <button onclick="addEnvelopeInModal()" id="btn-add-env-modal" class="px-2 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold text-[11px]"></button>
+          </div>
+          <div id="edit-acc-envelopes-list" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="deleteAccountFromModal()" id="btn-delete-acc" class="px-3.5 py-3 rounded-2xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs"></button>
+        <button onclick="saveEditAccountModal()" id="btn-save-edit-acc" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CREATE NEW CUSTOM SUB-TYPE & ACCOUNT (BOTTOM SHEET) -->
+  <div id="create-account-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 id="create-acc-modal-title" class="text-base font-extrabold text-white"></h3>
+        <button onclick="closeCreateAccountModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label id="lbl-new-pillar" class="block text-slate-400 mb-1 font-semibold"></label>
+          <select id="inp-new-pillar" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs">
+            <option value="ASSET_LIQUID">1. ASSET_LIQUID (Bank / e-Wallet / TNG NFC / Cash)</option>
+            <option value="ASSET_INVESTMENT">2. ASSET_INVESTMENT (ASNB / FD / StashAway / EPF)</option>
+            <option value="LIABILITY">3. LIABILITY (SPayLater / Credit Card / Loan)</option>
+            <option value="INCOME_SOURCE">4. INCOME_SOURCE (Salary / Freelance / Dividend)</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label id="lbl-new-subtype-en" class="block text-slate-400 mb-1"></label>
+            <input id="inp-new-subtype-en" type="text" placeholder="e.g. e-Wallets" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+          <div>
+            <label id="lbl-new-subtype-zh" class="block text-slate-400 mb-1"></label>
+            <input id="inp-new-subtype-zh" type="text" placeholder="例如：电子钱包" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label id="lbl-new-name-en" class="block text-slate-400 mb-1"></label>
+            <input id="inp-new-name-en" type="text" placeholder="e.g. GrabPay Wallet" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+          <div>
+            <label id="lbl-new-name-zh" class="block text-slate-400 mb-1"></label>
+            <input id="inp-new-name-zh" type="text" placeholder="例如：GrabPay 钱包" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label id="lbl-new-balance" class="block text-emerald-300 font-bold mb-1"></label>
+            <input id="inp-new-balance" type="number" step="0.01" value="100.00" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-emerald-500/50 text-emerald-400 font-black text-sm" />
+          </div>
+          <div>
+            <label id="lbl-new-floor" class="block text-rose-300 font-bold mb-1"></label>
+            <input id="inp-new-floor" type="number" step="0.01" value="10.00" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-sm" />
+          </div>
+        </div>
+      </div>
+
+      <button onclick="saveCreateAccountModal()" id="btn-save-new-acc" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg"></button>
+    </div>
+  </div>
+
+  <!-- MODAL 3: 3-TAP NUMPAD QUICK EXPENSE / TRANSFER / INSTALLMENT MODAL -->
+  <div id="numpad-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 id="numpad-modal-title" class="text-sm sm:text-base font-extrabold text-white"></h3>
+        <button onclick="closeNumpadModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white text-sm font-bold">✕</button>
+      </div>
+
+      <!-- Tap 1: Mode Switcher (Expense | Transfer | SPayLater Installment) -->
+      <div class="grid grid-cols-3 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <button onclick="setNumpadMode('EXPENSE')" id="np-mode-expense" class="py-2 rounded-lg text-xs font-bold transition-all"></button>
+        <button onclick="setNumpadMode('TRANSFER')" id="np-mode-transfer" class="py-2 rounded-lg text-xs font-bold transition-all"></button>
+        <button onclick="setNumpadMode('INSTALLMENT')" id="np-mode-installment" class="py-2 rounded-lg text-xs font-bold transition-all"></button>
+      </div>
+
+      <!-- Amount Display Screen -->
+      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-right">
+        <span id="np-mode-hint" class="text-[11px] text-slate-400 block"></span>
+        <div class="text-3xl font-black text-emerald-400 tracking-tight mt-0.5">
+          RM <span id="np-amount-display">50.00</span>
+        </div>
+      </div>
+
+      <!-- Tap 2: Real Interactive Account & Category / Tenure Dropdowns -->
+      <div id="np-context-selectors" class="space-y-2 text-xs"></div>
+
+      <!-- Interactive Mobile Numpad Keys -->
+      <div class="grid grid-cols-3 gap-2">
+        <button onclick="pressNumpadKey('1')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">1</button>
+        <button onclick="pressNumpadKey('2')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">2</button>
+        <button onclick="pressNumpadKey('3')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">3</button>
+        <button onclick="pressNumpadKey('4')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">4</button>
+        <button onclick="pressNumpadKey('5')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">5</button>
+        <button onclick="pressNumpadKey('6')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">6</button>
+        <button onclick="pressNumpadKey('7')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">7</button>
+        <button onclick="pressNumpadKey('8')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">8</button>
+        <button onclick="pressNumpadKey('9')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">9</button>
+        <button onclick="pressNumpadKey('.')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">.</button>
+        <button onclick="pressNumpadKey('0')" class="numpad-key py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-base">0</button>
+        <button onclick="pressNumpadKey('C')" class="numpad-key py-2.5 rounded-xl bg-rose-950/60 hover:bg-rose-900/60 text-rose-300 font-bold text-xs">CLR</button>
+      </div>
+
+      <!-- Tap 3: Confirm & Post to Double-Entry Ledger -->
+      <button onclick="submitNumpadTransaction()" id="btn-submit-numpad" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg"></button>
+    </div>
+  </div>
+
+  <!-- NATIVE ANDROID / IOS STYLE BOTTOM NAVIGATION DOCK -->
+  <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-1.5">
+    <div class="max-w-lg mx-auto grid grid-cols-5 items-center text-center gap-1">
+      <button onclick="switchTab('dashboard')" id="dock-dashboard" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
+        <span class="text-base">🏛️</span>
+        <span id="dock-lbl-dashboard" class="text-[10px] font-bold mt-0.5"></span>
+      </button>
+      <button onclick="switchTab('envelopes')" id="dock-envelopes" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
+        <span class="text-base">✉️</span>
+        <span id="dock-lbl-envelopes" class="text-[10px] font-bold mt-0.5"></span>
+      </button>
+      <!-- Center Floating + Quick Entry Button -->
+      <div class="flex justify-center">
+        <button onclick="openNumpadModal()" class="tap-scale -mt-4 w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 font-black text-2xl shadow-xl flex items-center justify-center border-2 border-slate-950">
+          +
+        </button>
+      </div>
+      <button onclick="switchTab('installments')" id="dock-installments" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
+        <span class="text-base">💳</span>
+        <span id="dock-lbl-installments" class="text-[10px] font-bold mt-0.5"></span>
+      </button>
+      <button onclick="switchTab('asnb')" id="dock-asnb" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
+        <span class="text-base">📈</span>
+        <span id="dock-lbl-asnb" class="text-[10px] font-bold mt-0.5"></span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    const I18N = {
+      en: {
+        appTitle: "MyPFM Bilingual Wealth & Ledger",
+        appSubtitle: "Tap any account card to edit balance, floor & envelopes",
+        alertBell: "Alerts",
+        dock: {
+          dashboard: "Accounts",
+          envelopes: "Envelopes",
+          installments: "SPayLater",
+          asnb: "ASNB Yield"
+        },
+        tabs: {
+          dashboard: "4-Pillar Accounts",
+          categories: "Category Budgets",
+          calendar: "30-Day Calendar",
+          envelopes: "Virtual Envelopes",
+          installments: "SPayLater & DSR",
+          asnb: "ASNB Projector",
+          alerts: "Alert Center"
+        },
+        pillarsSectionTitle: "4-Pillar Accounts & Direct Balance Editor",
+        pillarsEditHint: "👉 Tap 'Edit Balance' on any Bank, TNG eWallet, SPayLater or ASNB card to adjust balances",
+        pillarFilterAll: "All 4 Pillars",
+        addCustomAcc: "+ New Account",
+        editBtnLabel: "✎ Edit Balance",
+        netWorth: "Total Net Worth",
+        safeToSpend: "Unrestricted Safe-to-Spend",
+        lockedEnvelopes: "Locked in Envelopes",
+        monthlyExpense: "Current Month Spend",
+        reimbursementsTitle: "Pending Split-Bill Reimbursements (Friends Owe)",
+        taxTitle: "LHDN Annual Tax Relief Progress (YA 2026)",
+        catTitle: "Category Roll-Up Summaries & Daily Velocity Caps",
+        catSubtitle: "Combines direct PersonalAmount expenses + current month's amortized InstallmentSchedule slices. Excludes all Transfers & Split-Bill friend receivables.",
+        calTitle: "30-Day Cashflow Projection Calendar",
+        calSubtitle: "Forecasts daily liquid balances, upcoming auto-debits, SPayLater installment slices, and salary inflows over the next 30 days.",
+        envTitle: "Virtual Envelopes (Sinking Funds Inside Bank Accounts)",
+        envFormula: "SafeToSpend = CurrentBalance - MinBalanceLimit - Sum(VirtualEnvelopes) - Sum(UpcomingAutoDebits)",
+        instTitle: "Installment Schedule Generator (SPayLater / Credit Card EPP / Loans)",
+        instSubtitle: "Logging an RM 150 3-month purchase immediately increases SPayLater liability by RM 150, while only counting RM 50/month in the monthly budget.",
+        createSpayLaterBtn: "+ Log RM 150 SPayLater (3M)",
+        asnbTitle: "ASNB Minimum Monthly Balance Dividend Projector & Daily Compounding",
+        asnbFormula: "MonthlyDividend = (LowestMonthlyBalance [Day 1..End] × (AnnualRate / 100)) / 12",
+        simAsnbAfter1st: "Simulate +RM 1,000 After 1st",
+        alertsCenterTitle: "Alert Notification Center (EN & 中文)",
+        alertsCenterSubtitle: "Real-time evaluation of Rule A (Static Floor), Rule B (Auto-Debit Look-Ahead + Donor Matcher), Rule C (Month-End Idle Cash Sweeper), and ASNB Timing Tips.",
+        simTng: "Rule A: TNG < RM 10",
+        simAutoDebit: "Rule B: Bank A Shortfall",
+        simReset: "Reset Demo Defaults",
+        numpadTitle: "Quick Expense / Transfer / Installment",
+        npExpense: "1. Expense",
+        npTransfer: "2. Transfer",
+        npInstallment: "3. SPayLater",
+        npSubmit: "Confirm & Update Account Balance",
+        editModalTitle: "Edit Account Balance & Settings",
+        lblEditNameEn: "Account Name (English)",
+        lblEditNameZh: "Account Name (中文名称)",
+        lblEditBalance: "Current Balance (RM)",
+        lblEditFloor: "Min Floor Alert (RM)",
+        lblEditLowestBal: "ASNB Lowest Monthly Bal (RM)",
+        lblEditRate: "Annual Yield Rate (% p.a.)",
+        lblEditEnvHeader: "Virtual Envelopes (Locked Sinking Funds)",
+        btnAddEnvModal: "+ Add Envelope",
+        btnDeleteAcc: "Delete",
+        btnSaveEditAcc: "Save Balance & Recalculate"
+      },
+      "zh-CN": {
+        appTitle: "MyPFM 双语个人财务与复式记账",
+        appSubtitle: "点击任意账户卡片即可直接修改余额、最低限额与储蓄信封",
+        alertBell: "预警",
+        dock: {
+          dashboard: "账户总览",
+          envelopes: "储蓄信封",
+          installments: "分期/DSR",
+          asnb: "ASNB分红"
+        },
+        tabs: {
+          dashboard: "四大支柱账户",
+          categories: "消费分类预算",
+          calendar: "30天现金流日历",
+          envelopes: "专属储蓄信封",
+          installments: "SPayLater分期",
+          asnb: "ASNB分红计算",
+          alerts: "智能预警中心"
+        },
+        pillarsSectionTitle: "四大支柱账户与余额直接编辑器",
+        pillarsEditHint: "👉 点击任意银行、TnG电子钱包、SPayLater 或 ASNB 卡片上的【修改余额】即可自定义金额",
+        pillarFilterAll: "全部四大支柱",
+        addCustomAcc: "+ 新增账户",
+        editBtnLabel: "✎ 修改余额",
+        netWorth: "个人净资产总额",
+        safeToSpend: "可自由支配安全余额",
+        lockedEnvelopes: "储蓄信封已锁定总额",
+        monthlyExpense: "本月个人实际支出",
+        reimbursementsTitle: "待收回朋友 AA 分账款项 (不虚增个人支出)",
+        taxTitle: "马来西亚 LHDN 年度税务减免进度 (2026 税年)",
+        catTitle: "消费分类汇总视图与超速每日限额建议",
+        catSubtitle: "自动汇总本月个人直接消费 (PersonalAmount) 与当月应还分期切片 (InstallmentSchedule)，严格剔除转账本金与朋友分账代垫款。",
+        calTitle: "未来 30 天现金流日历预测",
+        calSubtitle: "按日推演未来30天自动扣款、SPayLater 分期还款日、预计薪资入账日及每日可自由支配安全余额。",
+        envTitle: "专属储蓄信封（在物理银行账户内锁定专项储备金）",
+        envFormula: "可自由支配余额 = 当前余额 - 最低安全限额 - 储蓄信封锁定总额 - 近期自动扣款预留",
+        instTitle: "分期付款计划生成器 (SPayLater 3期 / 信用卡分期 / 贷款)",
+        instSubtitle: "创建 RM 150 的 3期分期消费立即增加 RM 150 总负债，但当月现金流预算仅计入 RM 50/月。",
+        createSpayLaterBtn: "+ 新增 RM 150 SPayLater (3期)",
+        asnbTitle: "ASNB 每月最低余额分红预测器与每日复利引擎",
+        asnbFormula: "当月分红 = (每月1日至月末最低余额 × (年化分红率 / 100)) / 12",
+        simAsnbAfter1st: "模拟1日后存入 RM 1,000",
+        alertsCenterTitle: "智能财务健康预警通知中心 (中英双语)",
+        alertsCenterSubtitle: "实时检测：规则 A (最低限额预警)、规则 B (自动扣款前瞻与富余账户配对建议)、规则 C (月末零息闲置资金扫入 ASNB)。",
+        simTng: "测试规则 A：TNG < RM 10",
+        simAutoDebit: "测试规则 B：银行 A 不足",
+        simReset: "重置默认演示数据",
+        numpadTitle: "三步数字键盘极速记账 (支出 / 转账 / 分期)",
+        npExpense: "1. 记支出",
+        npTransfer: "2. 记转账",
+        npInstallment: "3. 分期消费",
+        npSubmit: "确认并自动更新账户余额",
+        editModalTitle: "修改账户余额与限额参数",
+        lblEditNameEn: "账户英文名称 (English Name)",
+        lblEditNameZh: "账户中文名称 (中文名称)",
+        lblEditBalance: "当前账户余额 (RM)",
+        lblEditFloor: "最低安全限额预警 (RM)",
+        lblEditLowestBal: "ASNB 本月最低余额 (RM)",
+        lblEditRate: "年化分红/利息率 (% p.a.)",
+        lblEditEnvHeader: "账户内专属储蓄信封 (锁定储备金)",
+        btnAddEnvModal: "+ 新增信封",
+        btnDeleteAcc: "删除账户",
+        btnSaveEditAcc: "保存余额并重新计算"
+      }
+    };
+
+    const DEFAULT_ACCOUNTS = [
+      {
+        id: 'bank-a',
+        pillar: 'ASSET_LIQUID',
+        subTypeEn: 'Commercial Banks',
+        subTypeZh: '商业银行',
+        nameEn: 'Bank A (Maybank Main CASA)',
+        nameZh: '银行 A (Maybank 主力储蓄账户)',
+        currentBalance: 180.00,
+        minBalanceLimit: 20.00,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        isZeroInterestLiquid: true,
+        envelopes: [
+          { nameEn: 'Road Tax & Car Insurance', nameZh: '路税与车险专项信封', allocated: 30.00, target: 600.00 },
+          { nameEn: 'Car Maintenance Sinking Fund', nameZh: '汽车定期保养信封', allocated: 20.00, target: 1000.00 }
+        ],
+        autoDebits: [
+          { nameEn: 'AIA Medical Insurance Auto-Debit', nameZh: 'AIA 医疗保险自动扣款', amount: 250.00, dueInDays: 3, dayOfMonth: 22 }
+        ]
+      },
+      {
+        id: 'bank-b',
+        pillar: 'ASSET_LIQUID',
+        subTypeEn: 'Commercial Banks',
+        subTypeZh: '商业银行',
+        nameEn: 'Bank B (CIMB Reserve CASA)',
+        nameZh: '银行 B (CIMB 备用储蓄账户)',
+        currentBalance: 1500.00,
+        minBalanceLimit: 20.00,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        isZeroInterestLiquid: true,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'gxbank',
+        pillar: 'ASSET_LIQUID',
+        subTypeEn: 'Digital Banks',
+        subTypeZh: '数字银行',
+        nameEn: 'GXBank Daily Interest Account',
+        nameZh: 'GXBank 每日计息数字银行',
+        currentBalance: 3650.00,
+        minBalanceLimit: 10.00,
+        interestMethod: 'DAILY_COMPOUND',
+        annualRate: 3.00,
+        isZeroInterestLiquid: false,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'tng-ewallet',
+        pillar: 'ASSET_LIQUID',
+        subTypeEn: 'e-Wallets',
+        subTypeZh: '电子钱包',
+        nameEn: "Touch 'n Go eWallet",
+        nameZh: "Touch 'n Go 电子钱包",
+        currentBalance: 150.00,
+        minBalanceLimit: 20.00,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        isZeroInterestLiquid: false,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'tng-nfc',
+        pillar: 'ASSET_LIQUID',
+        subTypeEn: "Touch 'n Go NFC Card",
+        subTypeZh: "Touch 'n Go NFC 实体卡",
+        nameEn: "Touch 'n Go NFC Card",
+        nameZh: "Touch 'n Go NFC 实体卡",
+        currentBalance: 6.50,
+        minBalanceLimit: 10.00,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        isZeroInterestLiquid: false,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'asnb-fixed',
+        pillar: 'ASSET_INVESTMENT',
+        subTypeEn: 'ASNB Fixed-Price Funds',
+        subTypeZh: 'ASNB 固定价格基金 (ASM/ASB)',
+        nameEn: 'ASNB ASM Fixed-Price Fund',
+        nameZh: 'ASNB 大马信托固定价格基金 (ASM)',
+        currentBalance: 13000.00,
+        lowestMonthlyBalance: 12000.00,
+        minBalanceLimit: 10.00,
+        interestMethod: 'ASNB_MIN_MONTHLY',
+        annualRate: 4.50,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'spaylater',
+        pillar: 'LIABILITY',
+        subTypeEn: 'SPayLater / BNPL',
+        subTypeZh: 'SPayLater / 先买后付',
+        nameEn: 'SPayLater (Shopee BNPL)',
+        nameZh: 'SPayLater 分期付款账户',
+        currentBalance: 100.00,
+        minBalanceLimit: 0,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'cc-visa',
+        pillar: 'LIABILITY',
+        subTypeEn: 'Credit Cards (Statement Float)',
+        subTypeZh: '信用卡 (账单免息期全额还款)',
+        nameEn: 'Maybank Visa Cashback Card',
+        nameZh: 'Maybank Visa 现金返还信用卡',
+        currentBalance: 320.00,
+        minBalanceLimit: 0,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        envelopes: [],
+        autoDebits: []
+      },
+      {
+        id: 'income-salary',
+        pillar: 'INCOME_SOURCE',
+        subTypeEn: 'Monthly Salary',
+        subTypeZh: '主业固定薪资',
+        nameEn: 'Primary Employer Net Salary',
+        nameZh: '主业税后净薪资',
+        currentBalance: 5000.00,
+        minBalanceLimit: 0,
+        interestMethod: 'NONE',
+        annualRate: 0,
+        envelopes: [],
+        autoDebits: []
+      }
+    ];
+
+    const state = {
+      lang: 'en',
+      activeTab: 'dashboard',
+      selectedPillarFilter: 'ALL',
+      editingAccountId: null,
+      numpadMode: 'EXPENSE',
+      numpadRaw: '50.00',
+      npSourceAccountId: 'bank-b',
+      npDestAccountId: 'asnb-fixed',
+      npCategoryId: 'cat-food',
+      npTenureMonths: 3,
+      netMonthlyIncome: 5000.00,
+      asnbTimingTipTriggered: true,
+      accounts: JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS)),
+      categories: [
+        { id: 'cat-food', code: 'FOOD_DINING', nameEn: 'Food & Dining', nameZh: '餐饮美食', budget: 800.00, directSpent: 420.00, installmentSlice: 0.00 },
+        { id: 'cat-transport', code: 'TRANSPORT_TOLL', nameEn: 'Transport, Toll & Parking', nameZh: '交通、过路费与停车', budget: 400.00, directSpent: 218.50, installmentSlice: 0.00 },
+        { id: 'cat-shopping', code: 'SHOPPING_TECH', nameEn: 'Shopping, Tech & Lifestyle', nameZh: '购物、数码与生活', budget: 600.00, directSpent: 460.00, installmentSlice: 50.00 },
+        { id: 'cat-insurance', code: 'INSURANCE', nameEn: 'Insurance & Protection', nameZh: '保险与医疗保障', budget: 350.00, directSpent: 250.00, installmentSlice: 0.00 },
+        { id: 'cat-fees', code: 'BANK_FEES', nameEn: 'Bank & Transfer Fees', nameZh: '银行与转账手续费', budget: 50.00, directSpent: 1.00, installmentSlice: 0.00 }
+      ],
+      installmentPlans: [
+        {
+          id: 'plan-spaylater-150',
+          merchantEn: 'Shopee Wireless Earbuds (SPayLater 3M)',
+          merchantZh: '分期付款计划 (SPayLater 3期 - 无线蓝牙耳机)',
+          totalPrincipal: 150.00,
+          tenureMonths: 3,
+          monthlySlice: 50.00,
+          schedules: [
+            { number: 1, dueDate: '2026-10-05', dayOffset: 0, amount: 50.00, paid: true },
+            { number: 2, dueDate: '2026-11-05', dayOffset: 17, amount: 50.00, paid: false },
+            { number: 3, dueDate: '2026-12-05', dayOffset: 47, amount: 50.00, paid: false }
+          ]
+        }
+      ],
+      reimbursements: [
+        {
+          id: 'reimb-1',
+          debtorName: 'Jason & Mei Ling',
+          descEn: 'Hotpot Group Dinner (Total RM 80, Personal RM 20)',
+          descZh: '火锅聚餐 AA 分账 (总计 RM 80，个人仅承担 RM 20)',
+          owedAmount: 60.00,
+          settled: false
+        }
+      ],
+      taxBuckets: [
+        { code: 'LHDN_LIFESTYLE', nameEn: 'Lifestyle (Books, PC, Smartphone, Internet)', nameZh: '生活方式减免（书籍、电脑、手机、宽带）', cap: 2500.00, claimed: 1200.00 },
+        { code: 'LHDN_SPORTS', nameEn: 'Sports Equipment, Gym & Competition', nameZh: '体育器材、健身房与赛事减免', cap: 1000.00, claimed: 380.00 },
+        { code: 'LHDN_MEDICAL', nameEn: 'Medical, Vaccination & Full Check-Up', nameZh: '医疗、疫苗与全面体检减免', cap: 10000.00, claimed: 850.00 }
+      ]
+    };
+
+    const STORAGE_KEY = 'mypfm_data_v2';
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          accounts: state.accounts,
+          categories: state.categories,
+          installmentPlans: state.installmentPlans,
+          reimbursements: state.reimbursements,
+          taxBuckets: state.taxBuckets,
+          lang: state.lang
+        }));
+      } catch (e) {}
+    }
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved.accounts && saved.accounts.length) state.accounts = saved.accounts;
+          if (saved.categories) state.categories = saved.categories;
+          if (saved.installmentPlans) state.installmentPlans = saved.installmentPlans;
+          if (saved.reimbursements) state.reimbursements = saved.reimbursements;
+          if (saved.taxBuckets) state.taxBuckets = saved.taxBuckets;
+          if (saved.lang) state.lang = saved.lang;
+        }
+      } catch (e) {}
+    }
+    loadFromStorage();
+
+    function isZh() { return state.lang === 'zh-CN'; }
+    function loc(en, zh) { return isZh() ? zh : en; }
+    function fmtRM(val) { return 'RM ' + Number(val || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function calcSafeToSpend(acc) {
+      if (acc.pillar !== 'ASSET_LIQUID') return 0;
+      const envSum = (acc.envelopes || []).reduce((s, e) => s + Number(e.allocated || 0), 0);
+      const debitSum = (acc.autoDebits || []).reduce((s, d) => s + Number(d.amount || 0), 0);
+      return Math.max(0, Number((acc.currentBalance - acc.minBalanceLimit - envSum - debitSum).toFixed(2)));
+    }
+
+    // =========================================================================
+    // DIRECT ACCOUNT BALANCE & SETTINGS EDITOR MODAL
+    // =========================================================================
+    function openEditAccountModal(accountId) {
+      const acc = state.accounts.find(a => a.id === accountId);
+      if (!acc) return;
+      state.editingAccountId = accountId;
+
+      const dict = I18N[state.lang];
+      document.getElementById('edit-acc-modal-title').textContent = dict.editModalTitle;
+      document.getElementById('edit-acc-pillar-badge').textContent = `${acc.pillar} • ${loc(acc.subTypeEn, acc.subTypeZh)}`;
+      document.getElementById('lbl-edit-name-en').textContent = dict.lblEditNameEn;
+      document.getElementById('lbl-edit-name-zh').textContent = dict.lblEditNameZh;
+      document.getElementById('lbl-edit-balance').textContent = dict.lblEditBalance;
+      document.getElementById('lbl-edit-floor').textContent = dict.lblEditFloor;
+      document.getElementById('lbl-edit-lowest-bal').textContent = dict.lblEditLowestBal;
+      document.getElementById('lbl-edit-rate').textContent = dict.lblEditRate;
+      document.getElementById('lbl-edit-env-header').textContent = dict.lblEditEnvHeader;
+      document.getElementById('btn-add-env-modal').textContent = dict.btnAddEnvModal;
+      document.getElementById('btn-delete-acc').textContent = dict.btnDeleteAcc;
+      document.getElementById('btn-save-edit-acc').textContent = dict.btnSaveEditAcc;
+
+      document.getElementById('inp-edit-name-en').value = acc.nameEn;
+      document.getElementById('inp-edit-name-zh').value = acc.nameZh;
+      document.getElementById('inp-edit-balance').value = Number(acc.currentBalance).toFixed(2);
+      document.getElementById('inp-edit-floor').value = Number(acc.minBalanceLimit || 0).toFixed(2);
+
+      const isAsnbOrYield = acc.pillar === 'ASSET_INVESTMENT' || acc.interestMethod !== 'NONE';
+      document.getElementById('wrap-edit-asnb-fields').classList.toggle('hidden', !isAsnbOrYield);
+      if (isAsnbOrYield) {
+        document.getElementById('inp-edit-lowest-bal').value = Number(acc.lowestMonthlyBalance ?? acc.currentBalance).toFixed(2);
+        document.getElementById('inp-edit-rate').value = Number(acc.annualRate || 0).toFixed(2);
+      }
+
+      const isLiquid = acc.pillar === 'ASSET_LIQUID';
+      document.getElementById('wrap-edit-envelopes').classList.toggle('hidden', !isLiquid);
+      if (isLiquid) {
+        renderModalEnvelopesList(acc);
+      }
+
+      document.getElementById('edit-account-modal').classList.remove('hidden');
+    }
+
+    function renderModalEnvelopesList(acc) {
+      const container = document.getElementById('edit-acc-envelopes-list');
+      if (!acc.envelopes || acc.envelopes.length === 0) {
+        container.innerHTML = `<p class="text-[11px] text-slate-500">${loc('No virtual envelopes locked in this account.', '此账户暂无锁定的专属储蓄信封。')}</p>`;
+        return;
+      }
+      container.innerHTML = acc.envelopes.map((env, i) => `
+        <div class="flex items-center justify-between gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+          <span class="text-xs text-white truncate">${loc(env.nameEn, env.nameZh)}</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="text-[11px] text-sky-300">RM</span>
+            <input type="number" step="0.01" value="${Number(env.allocated).toFixed(2)}"
+              onchange="updateModalEnvelopeAmount(${i}, this.value)"
+              class="w-20 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-sky-300 font-bold text-xs text-right" />
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateModalEnvelopeAmount(idx, val) {
+      const acc = state.accounts.find(a => a.id === state.editingAccountId);
+      if (!acc || !acc.envelopes[idx]) return;
+      acc.envelopes[idx].allocated = Math.max(0, parseFloat(val) || 0);
+    }
+
+    function addEnvelopeInModal() {
+      const acc = state.accounts.find(a => a.id === state.editingAccountId);
+      if (!acc) return;
+      const nameEn = prompt(loc('Envelope Name (e.g. Emergency Fund):', '请输入储蓄信封名称 (例如：紧急备用金)：'), 'Emergency Buffer');
+      if (!nameEn) return;
+      const amt = parseFloat(prompt(loc('Amount to lock (RM):', '请输入锁定金额 (RM)：'), '100')) || 0;
+      acc.envelopes = acc.envelopes || [];
+      acc.envelopes.push({ nameEn, nameZh: nameEn, allocated: amt, target: amt * 2 });
+      renderModalEnvelopesList(acc);
+    }
+
+    function saveEditAccountModal() {
+      const acc = state.accounts.find(a => a.id === state.editingAccountId);
+      if (!acc) return;
+
+      const prevBalance = acc.currentBalance;
+      const newBalance = Math.max(0, parseFloat(document.getElementById('inp-edit-balance').value) || 0);
+
+      acc.nameEn = document.getElementById('inp-edit-name-en').value.trim() || acc.nameEn;
+      acc.nameZh = document.getElementById('inp-edit-name-zh').value.trim() || acc.nameZh;
+      acc.currentBalance = Number(newBalance.toFixed(2));
+      acc.minBalanceLimit = Math.max(0, Number((parseFloat(document.getElementById('inp-edit-floor').value) || 0).toFixed(2)));
+
+      if (acc.pillar === 'ASSET_INVESTMENT' || acc.interestMethod !== 'NONE') {
+        const manualLowest = parseFloat(document.getElementById('inp-edit-lowest-bal').value);
+        if (!isNaN(manualLowest)) {
+          acc.lowestMonthlyBalance = Number(Math.min(acc.currentBalance, manualLowest).toFixed(2));
+        } else if (acc.currentBalance < (acc.lowestMonthlyBalance ?? acc.currentBalance)) {
+          acc.lowestMonthlyBalance = acc.currentBalance;
+        }
+        acc.annualRate = Math.max(0, parseFloat(document.getElementById('inp-edit-rate').value) || acc.annualRate);
+      }
+
+      if (acc.id === 'income-salary') {
+        state.netMonthlyIncome = acc.currentBalance;
+      }
+
+      closeEditAccountModal();
+      renderAll();
+    }
+
+    function deleteAccountFromModal() {
+      if (state.accounts.length <= 1) return;
+      state.accounts = state.accounts.filter(a => a.id !== state.editingAccountId);
+      closeEditAccountModal();
+      renderAll();
+    }
+
+    function closeEditAccountModal() {
+      document.getElementById('edit-account-modal').classList.add('hidden');
+      state.editingAccountId = null;
+    }
+
+    // =========================================================================
+    // CREATE NEW CUSTOM SUB-TYPE & ACCOUNT MODAL
+    // =========================================================================
+    function openCreateAccountModal() {
+      document.getElementById('create-acc-modal-title').textContent = loc('Add Custom Sub-Type & Account', '新增自定义子类别与账户');
+      document.getElementById('lbl-new-pillar').textContent = loc('Select Immutable Pillar', '选择所属四大支柱');
+      document.getElementById('lbl-new-subtype-en').textContent = loc('Sub-Type (EN)', '子类别英文名');
+      document.getElementById('lbl-new-subtype-zh').textContent = loc('Sub-Type (中文)', '子类别中文名');
+      document.getElementById('lbl-new-name-en').textContent = loc('Account Name (EN)', '账户英文名称');
+      document.getElementById('lbl-new-name-zh').textContent = loc('Account Name (中文)', '账户中文名称');
+      document.getElementById('lbl-new-balance').textContent = loc('Opening Balance (RM)', '初始账户余额 (RM)');
+      document.getElementById('lbl-new-floor').textContent = loc('Min Floor Limit (RM)', '最低安全限额 (RM)');
+      document.getElementById('btn-save-new-acc').textContent = loc('Create Account', '立即创建账户');
+      document.getElementById('create-account-modal').classList.remove('hidden');
+    }
+
+    function closeCreateAccountModal() {
+      document.getElementById('create-account-modal').classList.add('hidden');
+    }
+
+    function saveCreateAccountModal() {
+      const pillar = document.getElementById('inp-new-pillar').value;
+      const subEn = document.getElementById('inp-new-subtype-en').value.trim() || 'Custom Sub-Type';
+      const subZh = document.getElementById('inp-new-subtype-zh').value.trim() || subEn;
+      const nameEn = document.getElementById('inp-new-name-en').value.trim() || 'New Custom Account';
+      const nameZh = document.getElementById('inp-new-name-zh').value.trim() || nameEn;
+      const bal = Math.max(0, parseFloat(document.getElementById('inp-new-balance').value) || 0);
+      const floor = Math.max(0, parseFloat(document.getElementById('inp-new-floor').value) || 0);
+
+      state.accounts.push({
+        id: 'acc-' + Date.now(),
+        pillar,
+        subTypeEn: subEn,
+        subTypeZh: subZh,
+        nameEn,
+        nameZh,
+        currentBalance: Number(bal.toFixed(2)),
+        lowestMonthlyBalance: Number(bal.toFixed(2)),
+        minBalanceLimit: Number(floor.toFixed(2)),
+        interestMethod: pillar === 'ASSET_INVESTMENT' ? 'ASNB_MIN_MONTHLY' : 'NONE',
+        annualRate: pillar === 'ASSET_INVESTMENT' ? 4.00 : 0,
+        isZeroInterestLiquid: pillar === 'ASSET_LIQUID',
+        envelopes: [],
+        autoDebits: []
+      });
+
+      closeCreateAccountModal();
+      renderAll();
+    }
+
+    // =========================================================================
+    // GUARDRAILS EVALUATION (RULE A, B, C, D)
+    // =========================================================================
+    function evaluateLocalizedAlerts() {
+      const alerts = [];
+
+      // Rule A: Static Operational Floor (e.g., Touch 'n Go NFC Card < RM 10.00)
+      state.accounts.filter(a => a.pillar === 'ASSET_LIQUID' && a.minBalanceLimit > 0).forEach(acc => {
+        if (acc.currentBalance < acc.minBalanceLimit) {
+          const shortfall = Number((acc.minBalanceLimit - acc.currentBalance).toFixed(2));
+          const donor = state.accounts.find(x => x.pillar === 'ASSET_LIQUID' && x.id !== acc.id && calcSafeToSpend(x) >= shortfall);
+          alerts.push({
+            ruleCode: 'RULE_A_STATIC_FLOOR',
+            translationKey: 'ALERT.STATIC_FLOOR_BREACH',
+            color: 'rose',
+            title: isZh() ? `${acc.nameZh} 余额不足预警` : `${acc.nameEn} Low Balance Alert`,
+            body: isZh()
+              ? `${acc.nameZh} 当前余额 (${fmtRM(acc.currentBalance)}) 已低于最低安全限额 ${fmtRM(acc.minBalanceLimit)}。请立即充值至少 ${fmtRM(shortfall)}，以免影响过路费或停车刷卡。`
+              : `${acc.nameEn} balance (${fmtRM(acc.currentBalance)}) is below its operational floor of ${fmtRM(acc.minBalanceLimit)}. Top up at least ${fmtRM(shortfall)} immediately for toll/parking gates.`,
+            actionLabel: donor ? (isZh() ? `一键从 ${donor.nameZh} 充值 ${fmtRM(shortfall)}` : `Top Up ${fmtRM(shortfall)} from ${donor.nameEn}`) : null,
+            onAction: donor ? () => executeQuickTransfer(donor.id, acc.id, shortfall) : null
+          });
+        }
+      });
+
+      // Rule B: Auto-Debit Look-Ahead + Donor Surplus Suggestion
+      state.accounts.filter(a => a.pillar === 'ASSET_LIQUID').forEach(acc => {
+        const autoDebitSum = (acc.autoDebits || []).reduce((s, d) => s + d.amount, 0);
+        if (autoDebitSum > 0) {
+          const required = Number((acc.minBalanceLimit + autoDebitSum).toFixed(2));
+          if (acc.currentBalance < required) {
+            const shortfall = Number((required - acc.currentBalance).toFixed(2));
+            const donor = state.accounts
+              .filter(x => x.pillar === 'ASSET_LIQUID' && x.id !== acc.id && calcSafeToSpend(x) >= shortfall)
+              .sort((a, b) => (b.isZeroInterestLiquid ? 1 : 0) - (a.isZeroInterestLiquid ? 1 : 0))[0];
+            const donorName = donor ? loc(donor.nameEn, donor.nameZh) : loc('Reserve Account', '备用账户');
+            const commitName = acc.autoDebits.map(d => loc(d.nameEn, d.nameZh)).join(', ');
+
+            alerts.push({
+              ruleCode: 'RULE_B_AUTODEBIT_LOOKAHEAD',
+              translationKey: 'ALERT.LOW_AUTODEBIT_BALANCE',
+              color: 'amber',
+              title: isZh() ? '自动扣款余额不足提醒' : 'Upcoming Auto-Debit Shortfall Warning',
+              body: isZh()
+                ? `${acc.nameZh} 在未来 7 天内需扣款【${commitName}】共需 ${fmtRM(required)}（含最低限额 ${fmtRM(acc.minBalanceLimit)}），当前余额仅 ${fmtRM(acc.currentBalance)}。智能建议：立即从 ${donorName} 转入 ${fmtRM(shortfall)}。`
+                : `${acc.nameEn} needs ${fmtRM(required)} (including ${fmtRM(acc.minBalanceLimit)} floor) for ${commitName} within 7 days, but only holds ${fmtRM(acc.currentBalance)}. Suggested: Transfer ${fmtRM(shortfall)} from ${donorName}.`,
+              actionLabel: donor ? (isZh() ? `一键从 ${donor.nameZh} 转入 ${fmtRM(shortfall)}` : `Transfer ${fmtRM(shortfall)} from ${donor.nameEn}`) : null,
+              onAction: donor ? () => executeQuickTransfer(donor.id, acc.id, shortfall) : null
+            });
+          }
+        }
+      });
+
+      // Rule C: Month-End Idle Cash Sweeper (25th - 31st)
+      const bankB = state.accounts.find(a => a.id === 'bank-b');
+      const asnb = state.accounts.find(a => a.id === 'asnb-fixed');
+      if (bankB && asnb) {
+        const surplus = calcSafeToSpend(bankB);
+        if (surplus >= 100) {
+          const estMonthlyDiv = ((surplus * (asnb.annualRate / 100)) / 12).toFixed(2);
+          alerts.push({
+            ruleCode: 'RULE_C_IDLE_CASH_SWEEPER',
+            translationKey: 'ALERT.IDLE_CASH_SWEEPER',
+            color: 'emerald',
+            title: isZh() ? '月末闲置资金转入 ASNB 智能建议' : 'Month-End ASNB Idle Cash Sweeper',
+            body: isZh()
+              ? `扣除所有储蓄信封与最低安全限额后，${bankB.nameZh} 仍有 ${fmtRM(surplus)} 零息闲置资金。建议在次月1日前转入 ${asnb.nameZh}，按年化 ${asnb.annualRate}% 预计每月可多赚取 RM ${estMonthlyDiv} 分红。`
+              : `After all buffers and envelopes, ${bankB.nameEn} holds ${fmtRM(surplus)} in 0% idle cash. Sweep to ${asnb.nameEn} before the 1st of next month to earn ~RM ${estMonthlyDiv}/mo in dividends.`,
+            actionLabel: isZh() ? `将 RM 500 闲置资金转入 ASNB` : `Sweep RM 500 Idle Cash to ASNB`,
+            onAction: () => executeQuickTransfer('bank-b', 'asnb-fixed', 500.00)
+          });
+        }
+      }
+
+      return alerts;
+    }
+
+    function executeQuickTransfer(sourceId, destId, amount) {
+      const src = state.accounts.find(a => a.id === sourceId);
+      const dst = state.accounts.find(a => a.id === destId);
+      if (!src || !dst || src.currentBalance < amount) return;
+      src.currentBalance = Number((src.currentBalance - amount).toFixed(2));
+      dst.currentBalance = Number((dst.currentBalance + amount).toFixed(2));
+      renderAll();
+    }
+
+    // =========================================================================
+    // 3-TAP NUMPAD MODAL WITH ACCOUNT & CATEGORY SELECTORS
+    // =========================================================================
+    function openNumpadModal() {
+      document.getElementById('numpad-modal').classList.remove('hidden');
+      renderNumpadModal();
+    }
+    function closeNumpadModal() {
+      document.getElementById('numpad-modal').classList.add('hidden');
+    }
+    function setNumpadMode(mode) {
+      state.numpadMode = mode;
+      if (mode === 'INSTALLMENT') state.numpadRaw = '150.00';
+      renderNumpadModal();
+    }
+    function pressNumpadKey(k) {
+      if (k === 'C') {
+        state.numpadRaw = '0';
+      } else if (k === '.') {
+        if (!state.numpadRaw.includes('.')) state.numpadRaw += '.';
+      } else {
+        state.numpadRaw = state.numpadRaw === '0' || state.numpadRaw === '50.00' || state.numpadRaw === '150.00'
+          ? k
+          : state.numpadRaw + k;
+      }
+      document.getElementById('np-amount-display').textContent = state.numpadRaw;
+    }
+
+    function submitNumpadTransaction() {
+      const amt = parseFloat(state.numpadRaw) || 0;
+      if (amt <= 0) return;
+
+      if (state.numpadMode === 'EXPENSE') {
+        const srcId = document.getElementById('np-sel-source')?.value || state.npSourceAccountId;
+        const catId = document.getElementById('np-sel-cat')?.value || state.npCategoryId;
+        const srcAcc = state.accounts.find(a => a.id === srcId);
+        const cat = state.categories.find(c => c.id === catId);
+        if (srcAcc) {
+          if (srcAcc.pillar === 'LIABILITY') {
+            srcAcc.currentBalance = Number((srcAcc.currentBalance + amt).toFixed(2));
+          } else {
+            srcAcc.currentBalance = Math.max(0, Number((srcAcc.currentBalance - amt).toFixed(2)));
+          }
+        }
+        if (cat) {
+          cat.directSpent = Number((cat.directSpent + amt).toFixed(2));
+        }
+      } else if (state.numpadMode === 'TRANSFER') {
+        const srcId = document.getElementById('np-sel-source')?.value || state.npSourceAccountId;
+        const dstId = document.getElementById('np-sel-dest')?.value || state.npDestAccountId;
+        const srcAcc = state.accounts.find(a => a.id === srcId);
+        const dstAcc = state.accounts.find(a => a.id === dstId);
+        if (srcAcc && dstAcc && srcAcc.id !== dstAcc.id) {
+          srcAcc.currentBalance = Math.max(0, Number((srcAcc.currentBalance - amt).toFixed(2)));
+          if (dstAcc.pillar === 'LIABILITY') {
+            dstAcc.currentBalance = Math.max(0, Number((dstAcc.currentBalance - amt).toFixed(2)));
+          } else {
+            dstAcc.currentBalance = Number((dstAcc.currentBalance + amt).toFixed(2));
+          }
+        }
+      } else if (state.numpadMode === 'INSTALLMENT') {
+        const liabId = document.getElementById('np-sel-liab')?.value || 'spaylater';
+        const tenure = parseInt(document.getElementById('np-sel-tenure')?.value || '3', 10);
+        const liabAcc = state.accounts.find(a => a.id === liabId);
+        const slice = Number((amt / tenure).toFixed(2));
+        if (liabAcc) {
+          liabAcc.currentBalance = Number((liabAcc.currentBalance + amt).toFixed(2));
+        }
+        const schedules = [];
+        for (let i = 1; i <= tenure; i++) {
+          schedules.push({ number: i, dueDate: `2026-${String(9 + i).padStart(2, '0')}-19`, amount: slice, paid: false });
+        }
+        state.installmentPlans.unshift({
+          id: 'plan-' + Date.now(),
+          merchantEn: `${liabAcc ? liabAcc.nameEn : 'SPayLater'} (${tenure}M • ${fmtRM(amt)})`,
+          merchantZh: `分期付款计划 (${liabAcc ? liabAcc.nameZh : 'SPayLater'} ${tenure}期 - ${fmtRM(amt)})`,
+          totalPrincipal: amt,
+          tenureMonths: tenure,
+          monthlySlice: slice,
+          schedules
+        });
+        state.categories[2].installmentSlice = Number((state.categories[2].installmentSlice + slice).toFixed(2));
+      }
+      closeNumpadModal();
+      renderAll();
+    }
+
+    function renderNumpadModal() {
+      const dict = I18N[state.lang];
+      document.getElementById('numpad-modal-title').textContent = dict.numpadTitle;
+      document.getElementById('np-mode-expense').textContent = dict.npExpense;
+      document.getElementById('np-mode-transfer').textContent = dict.npTransfer;
+      document.getElementById('np-mode-installment').textContent = dict.npInstallment;
+      document.getElementById('btn-submit-numpad').textContent = dict.npSubmit;
+      document.getElementById('np-amount-display').textContent = state.numpadRaw;
+
+      ['EXPENSE', 'TRANSFER', 'INSTALLMENT'].forEach(m => {
+        const id = 'np-mode-' + m.toLowerCase();
+        document.getElementById(id).className = state.numpadMode === m
+          ? 'py-2 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
+          : 'py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white';
+      });
+
+      const hintEl = document.getElementById('np-mode-hint');
+      const ctxEl = document.getElementById('np-context-selectors');
+      const spendAccounts = state.accounts.filter(a => a.pillar === 'ASSET_LIQUID' || a.pillar === 'LIABILITY');
+      const allAccounts = state.accounts.filter(a => a.pillar !== 'INCOME_SOURCE');
+      const liabAccounts = state.accounts.filter(a => a.pillar === 'LIABILITY');
+
+      if (state.numpadMode === 'EXPENSE') {
+        hintEl.textContent = loc('Deducts from selected account & adds to category budget', '从所选账户扣款并计入消费分类预算');
+        ctxEl.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('Pay From Account:', '付款账户:')}</label>
+              <select id="np-sel-source" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
+                ${spendAccounts.map(a => `<option value="${a.id}" ${a.id === 'bank-b' ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('Expense Category:', '消费分类:')}</label>
+              <select id="np-sel-cat" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
+                ${state.categories.map(c => `<option value="${c.id}">${loc(c.nameEn, c.nameZh)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `;
+      } else if (state.numpadMode === 'TRANSFER') {
+        hintEl.textContent = loc('Atomic Transfer • RM 0 Expense Inflation', '原子转账 • 绝不虚增月度消费支出');
+        ctxEl.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('From Account:', '转出账户:')}</label>
+              <select id="np-sel-source" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
+                ${allAccounts.map(a => `<option value="${a.id}" ${a.id === 'bank-b' ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('To Account:', '转入账户:')}</label>
+              <select id="np-sel-dest" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-emerald-500/40 text-emerald-300 font-semibold text-xs">
+                ${allAccounts.map(a => `<option value="${a.id}" ${a.id === 'asnb-fixed' ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `;
+      } else {
+        hintEl.textContent = loc('+Full Liability Now, Only 1/N Slice in Monthly Budget', '立即增加总负债，当月预算仅计入单期月供');
+        ctxEl.innerHTML = `
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('Liability Account:', '分期/负债账户:')}</label>
+              <select id="np-sel-liab" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-indigo-500/40 text-indigo-300 font-semibold text-xs">
+                ${liabAccounts.map(a => `<option value="${a.id}">${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-1">${loc('Tenure (Months):', '分期期数:')}</label>
+              <select id="np-sel-tenure" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
+                <option value="3">3 ${loc('Months', '期 (个月)')}</option>
+                <option value="6">6 ${loc('Months', '期 (个月)')}</option>
+                <option value="12">12 ${loc('Months', '期 (个月)')}</option>
+              </select>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function simulateTngDropBelow10() {
+      const tng = state.accounts.find(a => a.id === 'tng-nfc');
+      if (tng) tng.currentBalance = 6.50;
+      renderAll();
+    }
+    function simulateBankAAutoDebitShortfall() {
+      const bankA = state.accounts.find(a => a.id === 'bank-a');
+      if (bankA) bankA.currentBalance = 180.00;
+      renderAll();
+    }
+    function resetGuardrailDemo() {
+      localStorage.removeItem(STORAGE_KEY);
+      state.accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+      renderAll();
+    }
+    function setLanguage(lang) {
+      state.lang = lang;
+      renderAll();
+    }
+    function switchTab(tab) {
+      state.activeTab = tab;
+      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts'].forEach(t => {
+        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+      });
+      renderAll();
+    }
+    function setPillarFilter(filter) {
+      state.selectedPillarFilter = filter;
+      renderAll();
+    }
+    function createSpayLater150Plan() {
+      state.numpadMode = 'INSTALLMENT';
+      state.numpadRaw = '150.00';
+      openNumpadModal();
+    }
+    function payInstallmentSlice(planId, scheduleNum) {
+      const plan = state.installmentPlans.find(p => p.id === planId);
+      const bankB = state.accounts.find(a => a.id === 'bank-b');
+      const spayAcc = state.accounts.find(a => a.id === 'spaylater');
+      if (!plan) return;
+      const sched = plan.schedules.find(s => s.number === scheduleNum);
+      if (!sched || sched.paid) return;
+      sched.paid = true;
+      if (bankB) bankB.currentBalance = Math.max(0, Number((bankB.currentBalance - sched.amount).toFixed(2)));
+      if (spayAcc) spayAcc.currentBalance = Math.max(0, Number((spayAcc.currentBalance - sched.amount).toFixed(2)));
+      renderAll();
+    }
+    function settleFriendReimbursement(id) {
+      const item = state.reimbursements.find(r => r.id === id);
+      const bankA = state.accounts.find(a => a.id === 'bank-a');
+      if (!item || item.settled) return;
+      item.settled = true;
+      if (bankA) bankA.currentBalance = Number((bankA.currentBalance + item.owedAmount).toFixed(2));
+      renderAll();
+    }
+    function simulateAfter1stAsnbDeposit() {
+      const asnb = state.accounts.find(a => a.id === 'asnb-fixed');
+      const bankB = state.accounts.find(a => a.id === 'bank-b');
+      if (bankB && asnb && bankB.currentBalance >= 1000) {
+        bankB.currentBalance -= 1000;
+        asnb.currentBalance += 1000;
+        state.asnbTimingTipTriggered = true;
+        renderAll();
+      }
+    }
+
+    function renderAll() {
+      const dict = I18N[state.lang];
+      document.getElementById('app-title').textContent = dict.appTitle;
+      document.getElementById('app-subtitle').textContent = dict.appSubtitle;
+      document.getElementById('lbl-alert-bell').textContent = dict.alertBell;
+
+      document.getElementById('dock-lbl-dashboard').textContent = dict.dock.dashboard;
+      document.getElementById('dock-lbl-envelopes').textContent = dict.dock.envelopes;
+      document.getElementById('dock-lbl-installments').textContent = dict.dock.installments;
+      document.getElementById('dock-lbl-asnb').textContent = dict.dock.asnb;
+
+      ['dashboard', 'envelopes', 'installments', 'asnb'].forEach(d => {
+        const el = document.getElementById('dock-' + d);
+        if (el) {
+          el.className = state.activeTab === d
+            ? 'tap-scale py-1 flex flex-col items-center justify-center rounded-xl text-emerald-400'
+            : 'tap-scale py-1 flex flex-col items-center justify-center rounded-xl text-slate-400 hover:text-white';
+        }
+      });
+
+      document.getElementById('btn-lang-en').className = state.lang === 'en'
+        ? 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
+        : 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white';
+      document.getElementById('btn-lang-zh').className = state.lang === 'zh-CN'
+        ? 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
+        : 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white';
+
+      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts'].forEach(t => {
+        const btn = document.getElementById('tab-btn-' + t);
+        btn.textContent = dict.tabs[t];
+        btn.className = state.activeTab === t
+          ? 'px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap bg-emerald-500 text-slate-950 shadow'
+          : 'px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800/80 text-slate-300 hover:bg-slate-800';
+      });
+
+      const alerts = evaluateLocalizedAlerts();
+      document.getElementById('badge-alert-count').textContent = alerts.length;
+
+      // Totals Calculation
+      const liquidAccs = state.accounts.filter(a => a.pillar === 'ASSET_LIQUID');
+      const investAccs = state.accounts.filter(a => a.pillar === 'ASSET_INVESTMENT');
+      const liabAccs = state.accounts.filter(a => a.pillar === 'LIABILITY');
+
+      const totalLiquid = liquidAccs.reduce((s, a) => s + a.currentBalance, 0);
+      const totalSafeToSpend = liquidAccs.reduce((s, a) => s + calcSafeToSpend(a), 0);
+      const totalLockedEnv = liquidAccs.reduce((s, a) => s + (a.envelopes || []).reduce((es, e) => es + e.allocated, 0), 0);
+      const totalInvest = investAccs.reduce((s, a) => s + a.currentBalance, 0);
+      const totalLiab = liabAccs.reduce((s, a) => s + a.currentBalance, 0);
+      const netWorth = totalLiquid + totalInvest - totalLiab;
+      const monthlyInstCommitment = state.installmentPlans.reduce((s, p) => s + p.monthlySlice, 0);
+      const totalMonthlyPersonalSpend = state.categories.reduce((s, c) => s + c.directSpent + c.installmentSlice, 0);
+
+      document.getElementById('kpi-cards-grid').innerHTML = `
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+          <p class="text-[11px] text-slate-400">${dict.netWorth}</p>
+          <p class="text-base sm:text-xl font-black text-white mt-0.5">${fmtRM(netWorth)}</p>
+          <p class="text-[10px] text-emerald-400 mt-0.5">${loc('Assets - Liabilities', '总资产 - 总负债')}</p>
+        </div>
+        <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-3.5">
+          <p class="text-[11px] text-emerald-300 font-semibold">${dict.safeToSpend}</p>
+          <p class="text-base sm:text-xl font-black text-emerald-400 mt-0.5">${fmtRM(totalSafeToSpend)}</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Liquid:', '账面流动:')} ${fmtRM(totalLiquid)}</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+          <p class="text-[11px] text-slate-400">${dict.lockedEnvelopes}</p>
+          <p class="text-base sm:text-xl font-black text-sky-400 mt-0.5">${fmtRM(totalLockedEnv)}</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Sinking Funds', '专项储蓄信封')}</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+          <p class="text-[11px] text-slate-400">${dict.monthlyExpense}</p>
+          <p class="text-base sm:text-xl font-black text-amber-300 mt-0.5">${fmtRM(totalMonthlyPersonalSpend)}</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">${loc(`+${fmtRM(monthlyInstCommitment)} SPayLater`, `含分期 ${fmtRM(monthlyInstCommitment)}`)}</p>
+        </div>
+      `;
+
+      document.getElementById('pillars-section-title').textContent = dict.pillarsSectionTitle;
+      document.getElementById('pillars-edit-hint').textContent = dict.pillarsEditHint;
+      document.getElementById('btn-add-custom-acc').textContent = dict.addCustomAcc;
+
+      // Render 4-Pillar Filter Selector Tabs
+      const pillarMeta = [
+        { key: 'ASSET_LIQUID', en: '1. Liquid Assets', zh: '1. 流动资产', badge: 'text-emerald-400' },
+        { key: 'ASSET_INVESTMENT', en: '2. Investments', zh: '2. 投资资产', badge: 'text-teal-400' },
+        { key: 'LIABILITY', en: '3. Liabilities & BNPL', zh: '3. 负债与分期', badge: 'text-rose-400' },
+        { key: 'INCOME_SOURCE', en: '4. Income Sources', zh: '4. 收入来源', badge: 'text-indigo-400' }
+      ];
+
+      document.getElementById('pillar-selector-tabs').innerHTML = [
+        { key: 'ALL', label: dict.pillarFilterAll },
+        ...pillarMeta.map(p => ({ key: p.key, label: loc(p.en, p.zh) }))
+      ].map(tab => `
+        <button onclick="setPillarFilter('${tab.key}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${state.selectedPillarFilter === tab.key ? 'bg-white text-slate-950 shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+          ${tab.label}
+        </button>
+      `).join('');
+
+      const visiblePillars = state.selectedPillarFilter === 'ALL'
+        ? pillarMeta
+        : pillarMeta.filter(p => p.key === state.selectedPillarFilter);
+
+      document.getElementById('pillars-rollup-grid').innerHTML = visiblePillars.map(p => {
+        const accs = state.accounts.filter(a => a.pillar === p.key);
+        const pillarSum = accs.reduce((s, a) => s + a.currentBalance, 0);
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-xs sm:text-sm font-bold ${p.badge}">${loc(p.en, p.zh)}</h3>
+              <span class="text-sm sm:text-base font-black text-white">${fmtRM(pillarSum)}</span>
+            </div>
+            <div class="space-y-2">
+              ${accs.map(a => `
+                <div onclick="openEditAccountModal('${a.id}')" class="tap-scale cursor-pointer bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-all">
+                  <div class="min-w-0">
+                    <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">${loc(a.subTypeEn, a.subTypeZh)}</span>
+                    <p class="text-xs font-bold text-white mt-1 truncate">${loc(a.nameEn, a.nameZh)}</p>
+                    ${a.pillar === 'ASSET_LIQUID' ? `<p class="text-[11px] text-emerald-400">${loc('Safe:', '可用:')} ${fmtRM(calcSafeToSpend(a))} • ${loc('Floor:', '底线:')} ${fmtRM(a.minBalanceLimit)}</p>` : ''}
+                    ${a.interestMethod === 'ASNB_MIN_MONTHLY' ? `<p class="text-[11px] text-teal-300">${loc('Min Monthly Bal:', '本月最低:')} ${fmtRM(a.lowestMonthlyBalance)} (${a.annualRate}%)</p>` : ''}
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-sm font-black text-white">${fmtRM(a.currentBalance)}</p>
+                    <span class="inline-block mt-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
+                      ${dict.editBtnLabel}
+                    </span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Pending Reimbursements & LHDN Tax Relief on Dashboard
+      document.getElementById('reimbursements-title').textContent = dict.reimbursementsTitle;
+      document.getElementById('reimbursements-list').innerHTML = state.reimbursements.map(r => `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
+          <div>
+            <p class="text-xs font-bold text-white">${r.debtorName} — ${fmtRM(r.owedAmount)}</p>
+            <p class="text-[11px] text-slate-400">${loc(r.descEn, r.descZh)}</p>
+          </div>
+          ${r.settled
+            ? `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">${loc('SETTLED', '已收回')}</span>`
+            : `<button onclick="settleFriendReimbursement('${r.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shrink-0">${loc('Settle (+RM 60)', '收回 (+RM 60)')}</button>`}
+        </div>
+      `).join('');
+
+      document.getElementById('tax-view-title').textContent = dict.taxTitle;
+      document.getElementById('tax-buckets-container').innerHTML = state.taxBuckets.map(b => {
+        const pct = Math.min(100, Math.round((b.claimed / b.cap) * 100));
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5">
+            <div class="flex justify-between text-xs font-bold">
+              <span class="text-white truncate pr-2">${loc(b.nameEn, b.nameZh)}</span>
+              <span class="text-emerald-400 shrink-0">${fmtRM(b.claimed)} / ${fmtRM(b.cap)}</span>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // TAB 2: Category Roll-Up Summaries
+      document.getElementById('cat-rollup-title').textContent = dict.catTitle;
+      document.getElementById('cat-rollup-subtitle').textContent = dict.catSubtitle;
+      document.getElementById('category-rollup-container').innerHTML = state.categories.map(c => {
+        const totalCommitted = Number((c.directSpent + c.installmentSlice).toFixed(2));
+        const rem = Math.max(0, Number((c.budget - totalCommitted).toFixed(2)));
+        const pct = Math.min(100, Math.round((totalCommitted / c.budget) * 100));
+        const dailyCap = (rem / 12).toFixed(2);
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">${c.code}</span>
+                <h4 class="text-sm font-bold text-white mt-1">${loc(c.nameEn, c.nameZh)}</h4>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-black text-white">${fmtRM(totalCommitted)} / ${fmtRM(c.budget)}</p>
+                <p class="text-[11px] ${pct >= 80 ? 'text-amber-400' : 'text-emerald-400'}">${pct}% ${loc('used', '已用')}</p>
+              </div>
+            </div>
+            <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div class="h-full ${pct >= 80 ? 'bg-amber-400' : 'bg-emerald-400'}" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-400 pt-1">
+              <span>${loc('Direct:', '直接:')} ${fmtRM(c.directSpent)} • ${loc('Installment:', '分期:')} ${fmtRM(c.installmentSlice)}</span>
+              <span class="text-sky-300 font-semibold">${loc('Cap:', '每日上限:')} RM ${dailyCap}/d</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // TAB 3: 30-Day Cashflow Projection Calendar
+      document.getElementById('cal-view-title').textContent = dict.calTitle;
+      document.getElementById('cal-view-subtitle').textContent = dict.calSubtitle;
+      let runningBal = totalLiquid;
+      const calDaysHtml = [];
+      for (let d = 0; d < 30; d++) {
+        const dateObj = new Date(2026, 9, 19 + d);
+        const dateStr = dateObj.toISOString().slice(5, 10);
+        const dayNum = dateObj.getDate();
+        let eventLabel = '';
+        let delta = 0;
+        let badgeStyle = 'border-slate-800 bg-slate-950';
+
+        if (d === 3) {
+          delta -= 250;
+          eventLabel = loc('AIA Insurance -RM 250', '保险扣款 -RM 250');
+          badgeStyle = 'border-rose-500/50 bg-rose-950/20';
+        } else if (dayNum === 25) {
+          delta += state.netMonthlyIncome;
+          eventLabel = loc(`Salary +${fmtRM(state.netMonthlyIncome)}`, `薪资入账 +${fmtRM(state.netMonthlyIncome)}`);
+          badgeStyle = 'border-emerald-500/50 bg-emerald-950/20';
+        } else if (dayNum === 28) {
+          eventLabel = loc('Rule C: ASNB Sweep', '规则C：ASNB转入窗口');
+          badgeStyle = 'border-teal-500/50 bg-teal-950/20';
+        } else if (dayNum === 5) {
+          delta -= 50;
+          eventLabel = loc('SPayLater -RM 50', 'SPayLater -RM 50');
+          badgeStyle = 'border-indigo-500/50 bg-indigo-950/20';
+        }
+        runningBal = Number((runningBal + delta).toFixed(2));
+        calDaysHtml.push(`
+          <div class="rounded-xl border p-2.5 flex flex-col justify-between min-h-[84px] ${badgeStyle}">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="font-bold text-slate-300">${dateStr}</span>
+              <span class="text-[10px] text-slate-500">D+${d}</span>
+            </div>
+            ${eventLabel ? `<p class="text-[10px] font-bold text-amber-300 my-1">${eventLabel}</p>` : `<p class="text-[10px] text-slate-600 my-1">${loc('No bill', '无账单')}</p>`}
+            <p class="text-xs font-extrabold text-white">${fmtRM(runningBal)}</p>
+          </div>
+        `);
+      }
+      document.getElementById('cashflow-calendar-grid').innerHTML = calDaysHtml.join('');
+
+      // TAB 4: Virtual Envelopes
+      document.getElementById('env-view-title').textContent = dict.envTitle;
+      document.getElementById('env-formula-bar').textContent = dict.envFormula;
+      document.getElementById('envelopes-breakdown-container').innerHTML = liquidAccs.map(a => {
+        const envSum = (a.envelopes || []).reduce((s, e) => s + e.allocated, 0);
+        const debitSum = (a.autoDebits || []).reduce((s, d) => s + d.amount, 0);
+        const safe = calcSafeToSpend(a);
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+            <div class="flex flex-wrap justify-between items-center gap-2">
+              <h4 class="text-sm font-bold text-white">${loc(a.nameEn, a.nameZh)}</h4>
+              <button onclick="openEditAccountModal('${a.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold">
+                ${loc('✎ Edit Envelopes & Balance', '✎ 编辑信封与余额')}
+              </button>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                <span class="text-slate-400 block">${loc('Current Balance', '账面当前余额')}</span>
+                <strong class="text-white">${fmtRM(a.currentBalance)}</strong>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                <span class="text-slate-400 block">${loc('Min Floor (Rule A)', '最低限额 (Rule A)')}</span>
+                <strong class="text-rose-300">- ${fmtRM(a.minBalanceLimit)}</strong>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                <span class="text-slate-400 block">${loc('Virtual Envelopes', '储蓄信封已锁定')}</span>
+                <strong class="text-sky-300">- ${fmtRM(envSum)}</strong>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-lg border border-emerald-500/30">
+                <span class="text-emerald-300 block">${loc('Safe-to-Spend', '可自由支配')}</span>
+                <strong class="text-emerald-400">${fmtRM(safe)}</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // TAB 5: Installments & DSR
+      document.getElementById('inst-view-title').textContent = dict.instTitle;
+      document.getElementById('inst-view-subtitle').textContent = dict.instSubtitle;
+      document.getElementById('btn-create-spaylater').textContent = dict.createSpayLaterBtn;
+
+      const dsrPct = state.netMonthlyIncome > 0 ? ((monthlyInstCommitment / state.netMonthlyIncome) * 100).toFixed(2) : '0.00';
+      document.getElementById('dsr-gauge-panel').innerHTML = `
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-xs text-slate-400">${loc('Debt Service Ratio (DSR %) = (Monthly Debt & BNPL / Net Income) × 100', '债务偿还比率 (DSR %) = (每月分期与贷款月供 / 净收入) × 100')}</p>
+            <p class="text-base sm:text-lg font-black text-emerald-400 mt-1">DSR: ${dsrPct}% (${fmtRM(monthlyInstCommitment)} / ${fmtRM(state.netMonthlyIncome)})</p>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">${loc('Healthy DSR (<= 30%)', '债务比率健康 (<= 30%)')}</span>
+        </div>
+      `;
+
+      document.getElementById('installment-plans-container').innerHTML = state.installmentPlans.map(p => {
+        const paidCount = p.schedules.filter(s => s.paid).length;
+        const remaining = p.schedules.filter(s => !s.paid).reduce((s, x) => s + x.amount, 0);
+        const progressText = isZh()
+          ? `分期付款计划 (${p.tenureMonths}期)：已还 ${paidCount}/${p.tenureMonths} 期，剩余 ${fmtRM(remaining)}`
+          : `${paidCount} of ${p.tenureMonths} paid, ${fmtRM(remaining)} remaining`;
+
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h4 class="text-sm font-bold text-white">${loc(p.merchantEn, p.merchantZh)}</h4>
+                <p class="text-xs text-indigo-300 font-semibold mt-0.5">${progressText}</p>
+              </div>
+              <span class="text-xs bg-indigo-500/20 text-indigo-200 px-2.5 py-1 rounded-lg font-bold">
+                ${fmtRM(p.monthlySlice)}/mo
+              </span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              ${p.schedules.map(s => `
+                <div class="p-2.5 rounded-lg border ${s.paid ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-slate-800 bg-slate-900'} flex items-center justify-between">
+                  <div>
+                    <p class="text-xs font-bold text-white">${loc(`Slice #${s.number}`, `第 ${s.number}/${p.tenureMonths} 期`)}</p>
+                    <p class="text-[11px] text-slate-400">${s.dueDate} • ${fmtRM(s.amount)}</p>
+                  </div>
+                  ${s.paid
+                    ? `<span class="text-[11px] font-bold text-emerald-400">${loc('PAID', '已结清')}</span>`
+                    : `<button onclick="payInstallmentSlice('${p.id}', ${s.number})" class="px-2.5 py-1 rounded bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-bold">${loc('Pay', '还款')}</button>`}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // TAB 6: ASNB Dividend Projector View
+      document.getElementById('asnb-view-title').textContent = dict.asnbTitle;
+      document.getElementById('asnb-rule-formula').textContent = dict.asnbFormula;
+      document.getElementById('btn-sim-asnb-after1st').textContent = dict.simAsnbAfter1st;
+
+      const asnbAcc = state.accounts.find(a => a.id === 'asnb-fixed') || investAccs[0];
+      const gxAcc = state.accounts.find(a => a.id === 'gxbank') || liquidAccs[0];
+      if (asnbAcc && gxAcc) {
+        const monthlyDiv = ((asnbAcc.lowestMonthlyBalance * (asnbAcc.annualRate / 100)) / 12).toFixed(2);
+        const nextMonthDiv = ((asnbAcc.currentBalance * (asnbAcc.annualRate / 100)) / 12).toFixed(2);
+        const projectedAnnualDiv = (Number(monthlyDiv) * 10 + Number(nextMonthDiv) * 2).toFixed(2);
+        const gxDailyInterest = (gxAcc.currentBalance * ((gxAcc.annualRate || 3) / 100 / 365)).toFixed(2);
+
+        document.getElementById('asnb-cards-container').innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <div class="bg-slate-950 border border-teal-500/40 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-teal-300">${loc(asnbAcc.nameEn, asnbAcc.nameZh)}</h3>
+                <button onclick="openEditAccountModal('${asnbAcc.id}')" class="px-2.5 py-1 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-bold">${dict.editBtnLabel}</button>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-slate-900 p-2.5 rounded-lg">
+                  <span class="text-slate-400 block">${loc('Current Balance', '当前账户总余额')}</span>
+                  <strong class="text-white text-sm">${fmtRM(asnbAcc.currentBalance)}</strong>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-teal-500/30">
+                  <span class="text-teal-300 block">${loc('Lowest Monthly Bal', '本月最低持有余额')}</span>
+                  <strong class="text-teal-400 text-sm">${fmtRM(asnbAcc.lowestMonthlyBalance)}</strong>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-lg">
+                  <span class="text-slate-400 block">${loc('Current Month Dividend', '本月已锁定分红')}</span>
+                  <strong class="text-emerald-400 text-sm">RM ${monthlyDiv}</strong>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-lg">
+                  <span class="text-slate-400 block">${loc('Projected Year-End', '预计全年总派息')}</span>
+                  <strong class="text-emerald-400 text-sm">RM ${projectedAnnualDiv}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-sky-300">${loc(gxAcc.nameEn, gxAcc.nameZh)}</h3>
+                <button onclick="openEditAccountModal('${gxAcc.id}')" class="px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold">${dict.editBtnLabel}</button>
+              </div>
+              <p class="text-xs font-mono text-slate-400">DailyInterest = EndOfDayBalance × (AnnualRate / 100 / 365)</p>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="bg-slate-900 p-2.5 rounded-lg">
+                  <span class="text-slate-400 block">${loc('End-of-Day Balance', '日终结算余额')}</span>
+                  <strong class="text-white text-sm">${fmtRM(gxAcc.currentBalance)}</strong>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-lg">
+                  <span class="text-slate-400 block">${loc('Daily Interest Earned', '每日复利收益')}</span>
+                  <strong class="text-sky-400 text-sm">RM ${gxDailyInterest} / ${loc('day', '天')}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // TAB 7: Alert Notification Center
+      document.getElementById('alerts-center-title').textContent = dict.alertsCenterTitle;
+      document.getElementById('alerts-center-subtitle').textContent = dict.alertsCenterSubtitle;
+      document.getElementById('btn-sim-tng').textContent = dict.simTng;
+      document.getElementById('btn-sim-autodebit').textContent = dict.simAutoDebit;
+      document.getElementById('btn-sim-reset').textContent = dict.simReset;
+
+      const alertsContainer = document.getElementById('alerts-container');
+      alertsContainer.innerHTML = '';
+      alerts.forEach((a, idx) => {
+        const borderMap = {
+          rose: 'border-rose-500/50 bg-rose-950/30',
+          amber: 'border-amber-500/50 bg-amber-950/30',
+          emerald: 'border-emerald-500/50 bg-emerald-950/30'
+        };
+        const card = document.createElement('div');
+        card.className = `rounded-xl border p-3.5 flex flex-col justify-between ${borderMap[a.color]}`;
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
+              <span>${a.ruleCode}</span>
+              <span>${a.translationKey}</span>
+            </div>
+            <h3 class="text-sm font-bold text-white mb-1">${a.title}</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">${a.body}</p>
+          </div>
+          ${a.actionLabel ? `<button id="alert-act-${idx}" class="mt-3 w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white border border-white/15 transition-all">${a.actionLabel}</button>` : ''}
+        `;
+        alertsContainer.appendChild(card);
+        if (a.actionLabel && a.onAction) {
+          document.getElementById(`alert-act-${idx}`).onclick = a.onAction;
+        }
+      });
+
+      saveToStorage();
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>

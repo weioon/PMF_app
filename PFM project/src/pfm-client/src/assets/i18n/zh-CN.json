@@ -1,0 +1,94 @@
+{
+  "APP": {
+    "TITLE": "MyPFM 双语个人财务与复式记账系统",
+    "SUBTITLE": "四大支柱复式记账与智能理财守卫系统 (MYR 马币)",
+    "LANGUAGE_TOGGLE": "EN / 中文",
+    "CURRENCY": "RM"
+  },
+  "NAV": {
+    "DASHBOARD": "四大支柱总览",
+    "ACCOUNTS_ENVELOPES": "账户与专属储蓄信封",
+    "TRANSACTIONS_SPLIT": "复式记账与AA分账",
+    "INSTALLMENTS_DSR": "分期付款 (SPayLater) 与 DSR",
+    "INVESTMENTS_ASNB": "ASNB 分红与日息引擎",
+    "TAX_RELIEF": "LHDN 税务减免追踪"
+  },
+  "PILLAR": {
+    "ASSET_LIQUID": "流动资产 (商业银行 / 数字银行 / 电子钱包 / TNG NFC卡)",
+    "ASSET_INVESTMENT": "投资资产 (ASNB 信托 / 定期存款 / ETF / 公积金)",
+    "LIABILITY": "负债与信贷 (SPayLater / 信用卡 / 车贷房贷)",
+    "INCOME_SOURCE": "收入来源 (主业薪资 / 自由职业 / 投资分红)"
+  },
+  "DASHBOARD": {
+    "NET_WORTH": "个人净资产总额",
+    "SAFE_TO_SPEND": "可自由支配安全余额 (Safe-to-Spend)",
+    "LOCKED_IN_ENVELOPES": "已锁定专属储蓄信封总额",
+    "PROJECTED_ANNUAL_YIELD": "预计全年投资分红与利息收益",
+    "TOTAL_LIABILITIES": "当前未结清总负债",
+    "MONTHLY_INSTALLMENT_COMMITMENT": "本月应还分期账单总额",
+    "MONTHLY_PERSONAL_EXPENSE": "本月个人实际支出总额",
+    "PENDING_REIMBURSEMENTS": "待收回朋友 AA 分账款项",
+    "DSR_BADGE": "债务偿还比率 (DSR %)",
+    "ADD_CUSTOM_ACCOUNT": "+ 新增自定义子类别 / 账户"
+  },
+  "LEDGER": {
+    "NEW_TRANSACTION": "记录复式记账流水",
+    "EXPENSE": "支出 (Expense)",
+    "INCOME": "收入 (Income)",
+    "TRANSFER": "转账 (绝不虚增月度支出)",
+    "SOURCE_ACCOUNT": "转出 / 付款账户",
+    "DESTINATION_ACCOUNT": "转入 / 收款账户",
+    "TOTAL_AMOUNT": "交易总金额 (RM)",
+    "PERSONAL_AMOUNT": "个人实际承担金额 (RM)",
+    "RECEIVABLE_AMOUNT": "朋友待还 AA 分账金额 (RM)",
+    "DEBTOR_NAME": "欠款朋友姓名 / 群组",
+    "TRANSFER_FEE": "转账手续费 (选填 RM)",
+    "TAX_RELIEF_TAG": "LHDN 个人所得税减免标签",
+    "SETTLE_REIMBURSEMENT": "标记已收回 (自动转入流动资产)"
+  },
+  "ENVELOPES": {
+    "TITLE": "专属储蓄信封 (银行账户内专项储备金)",
+    "FORMULA_EXPLAINER": "可自由支配余额 = 当前余额 - 最低安全限额 - 储蓄信封锁定金额 - 近期自动扣款预留",
+    "ROAD_TAX": "路税与车险基金",
+    "CAR_MAINTENANCE": "汽车定期保养基金",
+    "EMERGENCY_FUND": "紧急医疗备用金"
+  },
+  "INSTALLMENTS": {
+    "TITLE": "分期付款计划生成器 (SPayLater / 信用卡分期 / 贷款)",
+    "CREATE_SPAYLATER_DEMO": "一键生成 RM 150 SPayLater 分期 (3期 = RM 50/月)",
+    "STATEMENT_FLOAT": "信用卡账单免息期消费 (下期全额还款)",
+    "AMORTIZED_INSTALLMENTS": "分期付款计划 (SPayLater 3期)",
+    "PROGRESS_TEMPLATE": "已还 {{paid}}/{{total}} 期，剩余 RM {{remaining}}",
+    "PAY_NEXT_SLICE": "偿还本期账单 (RM {{amount}})"
+  },
+  "ASNB": {
+    "TITLE": "ASNB 每月最低余额分红计算器与每日复利引擎",
+    "RULE_EXPLAINER": "当月分红 = (每月1日至月末最低余额 * (年化分红率 / 100)) / 12",
+    "LOWEST_MONTHLY_BALANCE": "本月最低持有余额 (1日至月末)",
+    "CURRENT_MONTH_DIVIDEND": "本月已累计分红收益",
+    "PROJECTED_YEAR_END": "预计年底总派息金额",
+    "DAILY_COMPOUND_TITLE": "每日计息复利计算器 (数字银行)",
+    "SIMULATE_AFTER_1ST_DEPOSIT": "模拟每月1日后存入 ASNB (触发存入时间理财提示)"
+  },
+  "ALERT": {
+    "SECTION_TITLE": "组件级限额守卫与智能理财建议",
+    "STATIC_FLOOR_BREACH": {
+      "TITLE": "{{accountName}} 余额不足预警",
+      "BODY": "{{accountName}} 当前余额 (RM {{currentBalance}}) 已低于最低安全限额 RM {{minLimit}}。请立即充值至少 RM {{shortfall}}，以免影响过路费或停车刷卡。"
+    },
+    "LOW_AUTODEBIT_BALANCE": {
+      "TITLE": "自动扣款余额不足提醒",
+      "BODY": "{{accountName}} 在未来 {{lookAheadDays}} 天内需扣款【{{commitmentName}}】共需 RM {{requiredAmount}}（含最低安全限额 RM {{minLimit}}），当前余额仅为 RM {{currentBalance}}。智能建议：立即从 {{surplusAccountName}} 转入 RM {{shortfall}} 至 {{accountName}}。"
+    },
+    "IDLE_CASH_SWEEPER": {
+      "TITLE": "月末闲置资金转入 ASNB 智能建议",
+      "BODY": "扣除所有专属储蓄信封、最低安全限额及近期自动扣款后，{{sourceAccountName}} 仍有 RM {{surplusAmount}} 零息闲置资金。建议在次月1日前转入 {{asnbAccountName}}，即可享受整月全额分红（预计每月多赚 RM {{projectedMonthlyYield}}）。"
+    },
+    "ASNB_DEPOSIT_TIMING_TIP": {
+      "TITLE": "ASNB 存入时间理财提示（每月最低余额分红规则）",
+      "BODY": "您于本月第 {{dayOfMonth}} 日向 {{accountName}} 存入了 RM {{depositAmount}}。由于 ASNB 按每月1日至月末的最低余额计算当月分红，该笔资金将从下月1日起正式计入全月分红基数（预计每月约 RM {{missedDividend}}）。小贴士：建议在每月25日至月末之间转入 ASNB！"
+    },
+    "EXECUTE_SUGGESTED_TRANSFER": "一键执行建议转账 (RM {{amount}})"
+  }
+}
+

@@ -1,0 +1,94 @@
+{
+  "APP": {
+    "TITLE": "MyPFM Bilingual Wealth & Ledger",
+    "SUBTITLE": "4-Pillar Double-Entry Personal Financial Management (MYR)",
+    "LANGUAGE_TOGGLE": "中文 / EN",
+    "CURRENCY": "RM"
+  },
+  "NAV": {
+    "DASHBOARD": "4-Pillar Dashboard",
+    "ACCOUNTS_ENVELOPES": "Accounts & Virtual Envelopes",
+    "TRANSACTIONS_SPLIT": "Ledger & Split Bills",
+    "INSTALLMENTS_DSR": "Installments (SPayLater) & DSR",
+    "INVESTMENTS_ASNB": "ASNB & Yield Engine",
+    "TAX_RELIEF": "LHDN Tax Relief"
+  },
+  "PILLAR": {
+    "ASSET_LIQUID": "Liquid Assets (Banks, e-Wallets, TNG NFC)",
+    "ASSET_INVESTMENT": "Investment Assets (ASNB, FD, ETF, EPF)",
+    "LIABILITY": "Liabilities (SPayLater, Credit Card, Loans)",
+    "INCOME_SOURCE": "Income Sources (Salary, Freelance, Dividends)"
+  },
+  "DASHBOARD": {
+    "NET_WORTH": "Total Net Worth",
+    "SAFE_TO_SPEND": "Unrestricted Safe-to-Spend",
+    "LOCKED_IN_ENVELOPES": "Locked in Virtual Envelopes",
+    "PROJECTED_ANNUAL_YIELD": "Projected Annual Investment Yield",
+    "TOTAL_LIABILITIES": "Total Liabilities Owed",
+    "MONTHLY_INSTALLMENT_COMMITMENT": "Current Month Installment Slice",
+    "MONTHLY_PERSONAL_EXPENSE": "Current Month Personal Spending",
+    "PENDING_REIMBURSEMENTS": "Pending Split-Bill Reimbursements (Friends Owe)",
+    "DSR_BADGE": "Debt Service Ratio (DSR %)",
+    "ADD_CUSTOM_ACCOUNT": "+ New Custom Account / Sub-Type"
+  },
+  "LEDGER": {
+    "NEW_TRANSACTION": "Record Double-Entry Transaction",
+    "EXPENSE": "Expense",
+    "INCOME": "Income",
+    "TRANSFER": "Transfer (Zero Expense Inflation)",
+    "SOURCE_ACCOUNT": "Source Account",
+    "DESTINATION_ACCOUNT": "Destination Account",
+    "TOTAL_AMOUNT": "Total Amount (RM)",
+    "PERSONAL_AMOUNT": "Personal Budget Share (RM)",
+    "RECEIVABLE_AMOUNT": "Friends Owe (Split Bill RM)",
+    "DEBTOR_NAME": "Friend / Group Name",
+    "TRANSFER_FEE": "Optional Transfer Fee (RM)",
+    "TAX_RELIEF_TAG": "LHDN Tax Relief Bucket",
+    "SETTLE_REIMBURSEMENT": "Mark Settled (Incoming Transfer)"
+  },
+  "ENVELOPES": {
+    "TITLE": "Virtual Envelopes (Sinking Funds Inside Bank Accounts)",
+    "FORMULA_EXPLAINER": "UnrestrictedSpendableBalance = CurrentBalance - MinBalanceLimit - Sum(VirtualEnvelopes) - Sum(UpcomingAutoDebits)",
+    "ROAD_TAX": "Road Tax & Car Insurance",
+    "CAR_MAINTENANCE": "Car Maintenance Sinking Fund",
+    "EMERGENCY_FUND": "Emergency Buffer"
+  },
+  "INSTALLMENTS": {
+    "TITLE": "Installment Schedule Generator (SPayLater / Credit Card EPP / Loans)",
+    "CREATE_SPAYLATER_DEMO": "Log RM 150 SPayLater (3 Months = RM 50/mo)",
+    "STATEMENT_FLOAT": "Credit Card Statement Float (100% Next Statement)",
+    "AMORTIZED_INSTALLMENTS": "Amortized Monthly Installments",
+    "PROGRESS_TEMPLATE": "{{paid}} of {{total}} paid, RM {{remaining}} remaining",
+    "PAY_NEXT_SLICE": "Pay Monthly Slice (RM {{amount}})"
+  },
+  "ASNB": {
+    "TITLE": "ASNB Minimum Monthly Balance & Daily Compounding Calculator",
+    "RULE_EXPLAINER": "MonthlyDividend = (LowestMonthlyBalance [Day 1..End] * (AnnualRate / 100)) / 12",
+    "LOWEST_MONTHLY_BALANCE": "Lowest Monthly Balance (Day 1 - End of Month)",
+    "CURRENT_MONTH_DIVIDEND": "Current Month Accrued Dividend",
+    "PROJECTED_YEAR_END": "Projected Full-Year Dividend Payout",
+    "DAILY_COMPOUND_TITLE": "Daily Compounding Calculator (Digital Bank)",
+    "SIMULATE_AFTER_1ST_DEPOSIT": "Simulate Post-1st ASNB Deposit (Triggers Timing Tip)"
+  },
+  "ALERT": {
+    "SECTION_TITLE": "Component-Level Guardrails & Proactive Suggestions",
+    "STATIC_FLOOR_BREACH": {
+      "TITLE": "{{accountName}} Low Balance Alert",
+      "BODY": "{{accountName}} balance (RM {{currentBalance}}) has dropped below its operational floor of RM {{minLimit}}. Please top up at least RM {{shortfall}} immediately (e.g., for toll/parking gates)."
+    },
+    "LOW_AUTODEBIT_BALANCE": {
+      "TITLE": "Upcoming Auto-Debit Shortfall Warning",
+      "BODY": "{{accountName}} requires RM {{requiredAmount}} (including RM {{minLimit}} floor) for upcoming {{commitmentName}} within {{lookAheadDays}} days, but currently holds RM {{currentBalance}}. Suggested Action: Transfer RM {{shortfall}} from {{surplusAccountName}} to {{accountName}}."
+    },
+    "IDLE_CASH_SWEEPER": {
+      "TITLE": "Month-End ASNB Idle Cash Sweeper",
+      "BODY": "After locking Virtual Envelopes, operational floor, and upcoming auto-debits, {{sourceAccountName}} holds RM {{surplusAmount}} in 0% idle cash. Sweep RM {{surplusAmount}} into {{asnbAccountName}} before the 1st of next month to capture ~RM {{projectedMonthlyYield}}/month in dividends."
+    },
+    "ASNB_DEPOSIT_TIMING_TIP": {
+      "TITLE": "ASNB Deposit Timing Tip (Minimum Monthly Balance Rule)",
+      "BODY": "You deposited RM {{depositAmount}} into {{accountName}} on Day {{dayOfMonth}}. Because ASNB calculates monthly dividends on the lowest balance held between Day 1 and month-end, this deposit will start earning full monthly dividends (~RM {{missedDividend}}/mo) from next month. Tip: Transfer between the 25th and last day of the month!"
+    },
+    "EXECUTE_SUGGESTED_TRANSFER": "Execute Suggested Transfer (RM {{amount}})"
+  }
+}
+
