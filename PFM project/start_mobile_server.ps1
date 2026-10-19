@@ -1,5 +1,5 @@
 $port = 8080
-$folder = "c:\Users\TokWO\OneDrive - KLN\Documents\PFM project\src\pfm-client\src"
+$folder = Join-Path $PSScriptRoot "src\pfm-client\src"
 
 $listener = New-Object System.Net.HttpListener
 $prefix = "http://+:$port/"
@@ -7,14 +7,13 @@ $listener.Prefixes.Add($prefix)
 
 try {
     $listener.Start()
-    Write-Host "Server started on port $port"
+    Write-Host "Server started on port $port (Serving $folder)"
 } catch {
-    # If + requires elevation, fallback to localhost and specific IP
     $listener = New-Object System.Net.HttpListener
     $listener.Prefixes.Add("http://localhost:$port/")
     $listener.Prefixes.Add("http://127.0.0.1:$port/")
     $listener.Start()
-    Write-Host "Server started on localhost:$port"
+    Write-Host "Server started on localhost:$port (Serving $folder)"
 }
 
 while ($listener.IsListening) {
@@ -50,4 +49,3 @@ while ($listener.IsListening) {
         # ignore client disconnects
     }
 }
-

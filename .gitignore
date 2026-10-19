@@ -1,0 +1,76 @@
+# ==========================================
+# Root .gitignore for Personal Financial Management (MyPFM)
+# ==========================================
+
+# Node / Angular dependencies & build artifacts
+**/node_modules/
+node_modules/
+**/dist/
+dist/
+**/.angular/
+.angular/
+package-lock.json.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Android / Mobile build outputs & binaries
+*.apk
+*.aab
+*.aar
+*.dex
+*.class
+**/build/
+build/
+**/.gradle/
+.gradle/
+**/local.properties
+local.properties
+**/captures/
+captures/
+**/.externalNativeBuild/
+.externalNativeBuild/
+**/.cxx/
+.cxx/
+*.hprof
+**/android/app/build/
+**/android/.gradle/
+**/android/capacitor-cordova-android-plugins/
+**/android/app/src/main/assets/public/
+**/android/app/src/main/assets/capacitor.config.json
+**/android/app/src/main/assets/capacitor.plugins.json
+
+# Standalone APK copies in project root or pfm-client
+MyPFM-standalone.apk
+**/MyPFM-standalone.apk
+
+# .NET / C# build outputs & user files
+**/bin/
+bin/
+**/obj/
+obj/
+**/.vs/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+TestResults/
+**/TestResults/
+
+# IDE & Editor files
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.iml
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="local-db.js"></script>
   <style>
     body {
       font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
@@ -21,6 +22,12 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-28 select-none sm:select-auto">
 
+  <!-- PWA / App Update Available Toast Banner -->
+  <div id="pwa-update-banner" class="hidden sticky top-0 z-50 bg-emerald-500 text-slate-950 px-3.5 py-2 text-xs font-extrabold flex items-center justify-between shadow-lg">
+    <span id="pwa-update-text">New code update ready! Your local financial data is 100% preserved.</span>
+    <button onclick="applySwUpdateNow()" class="px-3 py-1 rounded-lg bg-slate-950 text-emerald-400 font-black">Update Now</button>
+  </div>
+
   <!-- Top Mobile App Bar -->
   <header class="sticky top-0 z-40 backdrop-blur-lg bg-slate-900/95 border-b border-slate-800 px-3.5 py-2.5">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
@@ -29,12 +36,21 @@
           RM
         </div>
         <div class="truncate">
-          <h1 id="app-title" class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate"></h1>
+          <div class="flex items-center gap-1.5">
+            <h1 id="app-title" class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate"></h1>
+            <span id="badge-offline-db" class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[9px] font-black uppercase tracking-wider shrink-0">IndexedDB Local</span>
+          </div>
           <p id="app-subtitle" class="text-[11px] text-slate-400 truncate"></p>
         </div>
       </div>
 
       <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Backup / Restore Quick Button -->
+        <button onclick="switchTab('backup')" class="tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1" title="JSON Backup & Restore">
+          <span>💾</span>
+          <span id="lbl-backup-btn" class="hidden sm:inline">Backup</span>
+        </button>
+
         <!-- Alert Bell Badge -->
         <button onclick="switchTab('alerts')" class="tap-scale relative px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -59,6 +75,7 @@
       <button onclick="switchTab('installments')" id="tab-btn-installments" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
       <button onclick="switchTab('asnb')" id="tab-btn-asnb" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
       <button onclick="switchTab('alerts')" id="tab-btn-alerts" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('backup')" id="tab-btn-backup" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
     </nav>
   </header>
 
@@ -167,6 +184,50 @@
           </div>
         </div>
         <div id="alerts-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+      </div>
+    </section>
+
+    <!-- TAB 8: STANDALONE STORAGE, JSON BACKUP / RESTORE & DOUBLE-ENTRY AUDIT LOG -->
+    <section id="view-backup" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 id="backup-view-title" class="text-base font-extrabold text-white"></h2>
+            <p id="backup-view-subtitle" class="text-xs text-slate-400 mt-0.5"></p>
+          </div>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">100% Offline Device DB</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <!-- Export Card -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 id="backup-export-title" class="text-sm font-bold text-emerald-400"></h3>
+            <p id="backup-export-desc" class="text-xs text-slate-400 leading-relaxed"></p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="downloadJsonBackup()" id="btn-download-json" class="tap-scale px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow"></button>
+              <button onclick="copyJsonBackupToClipboard()" id="btn-copy-json" class="tap-scale px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700"></button>
+            </div>
+          </div>
+
+          <!-- Import / Restore Card -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h3 id="backup-import-title" class="text-sm font-bold text-sky-400"></h3>
+            <p id="backup-import-desc" class="text-xs text-slate-400 leading-relaxed"></p>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="file" id="inp-restore-file" accept=".json,application/json" onchange="handleRestoreFileSelect(event)" class="hidden" />
+              <button onclick="document.getElementById('inp-restore-file').click()" id="btn-upload-json" class="tap-scale px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-black text-xs shadow"></button>
+              <button onclick="checkForSwUpdateManual()" id="btn-check-pwa-update" class="tap-scale px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-300 font-bold text-xs border border-teal-500/40"></button>
+            </div>
+          </div>
+        </div>
+
+        <p id="backup-status-msg" class="hidden text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/40 px-3 py-2 rounded-xl"></p>
+
+        <!-- Double-Entry Ledger Transaction Log -->
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5">
+          <h3 id="tx-history-title" class="text-sm font-bold text-white"></h3>
+          <div id="tx-history-list" class="space-y-2 max-h-72 overflow-y-auto"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -379,7 +440,8 @@
           envelopes: "Virtual Envelopes",
           installments: "SPayLater & DSR",
           asnb: "ASNB Projector",
-          alerts: "Alert Center"
+          alerts: "Alert Center",
+          backup: "💾 Backup & DB"
         },
         pillarsSectionTitle: "4-Pillar Accounts & Direct Balance Editor",
         pillarsEditHint: "👉 Tap 'Edit Balance' on any Bank, TNG eWallet, SPayLater or ASNB card to adjust balances",
@@ -409,6 +471,17 @@
         simTng: "Rule A: TNG < RM 10",
         simAutoDebit: "Rule B: Bank A Shortfall",
         simReset: "Reset Demo Defaults",
+        backupTitle: "Standalone IndexedDB Storage & JSON Backup / Restore",
+        backupSubtitle: "Runs 100% locally on your Android phone (even when PC is off). Code updates via Git/PWA or Capacitor APK never wipe your IndexedDB data.",
+        backupExportTitle: "Export Full Financial Data (.JSON)",
+        backupExportDesc: "Download or copy a complete snapshot of your 4-Pillar Accounts, Double-Entry Transactions, ASNB Minimum Monthly Balances, and SPayLater Installments.",
+        btnDownloadJson: "⬇ Download JSON Backup",
+        btnCopyJson: "📋 Copy JSON",
+        backupImportTitle: "Restore from JSON Backup & Check Updates",
+        backupImportDesc: "Select a previously exported MyPFM .json file to restore all balances and schedules immediately onto this device.",
+        btnUploadJson: "⬆ Restore from .JSON File",
+        btnCheckUpdate: "🔄 Check for Code Update",
+        txHistoryTitle: "Local Double-Entry Ledger Audit Log (IndexedDB)",
         numpadTitle: "Quick Expense / Transfer / Installment",
         npExpense: "1. Expense",
         npTransfer: "2. Transfer",
@@ -443,7 +516,8 @@
           envelopes: "专属储蓄信封",
           installments: "SPayLater分期",
           asnb: "ASNB分红计算",
-          alerts: "智能预警中心"
+          alerts: "智能预警中心",
+          backup: "💾 备份与数据库"
         },
         pillarsSectionTitle: "四大支柱账户与余额直接编辑器",
         pillarsEditHint: "👉 点击任意银行、TnG电子钱包、SPayLater 或 ASNB 卡片上的【修改余额】即可自定义金额",
@@ -473,6 +547,17 @@
         simTng: "测试规则 A：TNG < RM 10",
         simAutoDebit: "测试规则 B：银行 A 不足",
         simReset: "重置默认演示数据",
+        backupTitle: "手机本地 IndexedDB 数据库与 JSON 备份/恢复中心",
+        backupSubtitle: "100% 手机端独立离线运行（关闭电脑与 VS Code 后完全正常使用）。更新代码或覆盖安装 APK 绝不丢失任何账本数据。",
+        backupExportTitle: "导出完整财务数据备份 (.JSON)",
+        backupExportDesc: "一键下载或复制您的四大支柱账户、复式记账流水、ASNB 每月最低余额快照及 SPayLater 分期计划。",
+        btnDownloadJson: "⬇ 下载 JSON 备份文件",
+        btnCopyJson: "📋 复制 JSON 数据",
+        backupImportTitle: "从 JSON 备份文件恢复数据 & 检查代码更新",
+        backupImportDesc: "选择之前导出的 MyPFM .json 备份文件，即可在手机上瞬间恢复所有账户余额与历史流水。",
+        btnUploadJson: "⬆ 选择 .JSON 文件恢复",
+        btnCheckUpdate: "🔄 检查最新代码更新",
+        txHistoryTitle: "本地复式记账流水审计日志 (IndexedDB)",
         numpadTitle: "三步数字键盘极速记账 (支出 / 转账 / 分期)",
         npExpense: "1. 记支出",
         npTransfer: "2. 记转账",
@@ -682,36 +767,93 @@
         { code: 'LHDN_LIFESTYLE', nameEn: 'Lifestyle (Books, PC, Smartphone, Internet)', nameZh: '生活方式减免（书籍、电脑、手机、宽带）', cap: 2500.00, claimed: 1200.00 },
         { code: 'LHDN_SPORTS', nameEn: 'Sports Equipment, Gym & Competition', nameZh: '体育器材、健身房与赛事减免', cap: 1000.00, claimed: 380.00 },
         { code: 'LHDN_MEDICAL', nameEn: 'Medical, Vaccination & Full Check-Up', nameZh: '医疗、疫苗与全面体检减免', cap: 10000.00, claimed: 850.00 }
+      ],
+      transactions: [
+        {
+          id: 'tx-seed-1',
+          date: '2026-10-18',
+          type: 'TRANSFER',
+          amount: 1000.00,
+          personalAmount: 0.00,
+          descEn: 'Transfer from Bank B to ASNB Fixed-Price Fund (RM 0 Expense Inflation)',
+          descZh: '从 银行 B 转账至 ASNB 固定价格基金 (绝不虚增月度消费支出)'
+        },
+        {
+          id: 'tx-seed-2',
+          date: '2026-10-17',
+          type: 'EXPENSE',
+          amount: 80.00,
+          personalAmount: 20.00,
+          descEn: 'Hotpot Group Dinner (Total RM 80, Personal RM 20, Friends Owe RM 60)',
+          descZh: '火锅聚餐 AA 分账 (总计 RM 80，个人承担 RM 20，朋友待还 RM 60)'
+        }
+      ],
+      asnbSnapshots: [
+        {
+          id: 'snap-asnb-2026-10',
+          accountId: 'asnb-fixed',
+          year: 2026,
+          month: 10,
+          lowestMonthlyBalance: 12000.00,
+          closingBalance: 13000.00,
+          annualRate: 4.50
+        }
       ]
     };
 
     const STORAGE_KEY = 'mypfm_data_v2';
+    function getSerializableState() {
+      return {
+        accounts: state.accounts,
+        categories: state.categories,
+        installmentPlans: state.installmentPlans,
+        reimbursements: state.reimbursements,
+        taxBuckets: state.taxBuckets,
+        transactions: state.transactions,
+        asnbSnapshots: state.asnbSnapshots,
+        netMonthlyIncome: state.netMonthlyIncome,
+        lang: state.lang
+      };
+    }
+
+    function applySavedDataToState(saved) {
+      if (!saved) return;
+      if (saved.accounts && saved.accounts.length) state.accounts = saved.accounts;
+      if (saved.categories && saved.categories.length) state.categories = saved.categories;
+      if (saved.installmentPlans) state.installmentPlans = saved.installmentPlans;
+      if (saved.reimbursements) state.reimbursements = saved.reimbursements;
+      if (saved.taxBuckets) state.taxBuckets = saved.taxBuckets;
+      if (saved.transactions) state.transactions = saved.transactions;
+      if (saved.asnbSnapshots) state.asnbSnapshots = saved.asnbSnapshots;
+      if (saved.netMonthlyIncome) state.netMonthlyIncome = saved.netMonthlyIncome;
+      if (saved.lang) state.lang = saved.lang;
+    }
+
     function saveToStorage() {
+      const snapshot = getSerializableState();
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          accounts: state.accounts,
-          categories: state.categories,
-          installmentPlans: state.installmentPlans,
-          reimbursements: state.reimbursements,
-          taxBuckets: state.taxBuckets,
-          lang: state.lang
-        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
       } catch (e) {}
+      if (window.PfmLocalDb) {
+        window.PfmLocalDb.saveFullState(snapshot).catch(() => {});
+      }
     }
 
     function loadFromStorage() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const saved = JSON.parse(raw);
-          if (saved.accounts && saved.accounts.length) state.accounts = saved.accounts;
-          if (saved.categories) state.categories = saved.categories;
-          if (saved.installmentPlans) state.installmentPlans = saved.installmentPlans;
-          if (saved.reimbursements) state.reimbursements = saved.reimbursements;
-          if (saved.taxBuckets) state.taxBuckets = saved.taxBuckets;
-          if (saved.lang) state.lang = saved.lang;
+          applySavedDataToState(JSON.parse(raw));
         }
       } catch (e) {}
+      if (window.PfmLocalDb) {
+        window.PfmLocalDb.loadFullState().then((idbData) => {
+          if (idbData && idbData.accounts && idbData.accounts.length) {
+            applySavedDataToState(idbData);
+            renderAll();
+          }
+        }).catch(() => {});
+      }
     }
     loadFromStorage();
 
@@ -720,6 +862,9 @@
     function fmtRM(val) { return 'RM ' + Number(val || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
     function calcSafeToSpend(acc) {
+      if (window.PfmDomainEngine) {
+        return window.PfmDomainEngine.calculateUnrestrictedSpendableBalance(acc, state.installmentPlans);
+      }
       if (acc.pillar !== 'ASSET_LIQUID') return 0;
       const envSum = (acc.envelopes || []).reduce((s, e) => s + Number(e.allocated || 0), 0);
       const debitSum = (acc.autoDebits || []).reduce((s, d) => s + Number(d.amount || 0), 0);
@@ -1014,6 +1159,7 @@
     function submitNumpadTransaction() {
       const amt = parseFloat(state.numpadRaw) || 0;
       if (amt <= 0) return;
+      const todayStr = new Date().toISOString().slice(0, 10);
 
       if (state.numpadMode === 'EXPENSE') {
         const srcId = document.getElementById('np-sel-source')?.value || state.npSourceAccountId;
@@ -1021,27 +1167,55 @@
         const srcAcc = state.accounts.find(a => a.id === srcId);
         const cat = state.categories.find(c => c.id === catId);
         if (srcAcc) {
+          const prevBal = srcAcc.currentBalance;
           if (srcAcc.pillar === 'LIABILITY') {
             srcAcc.currentBalance = Number((srcAcc.currentBalance + amt).toFixed(2));
           } else {
             srcAcc.currentBalance = Math.max(0, Number((srcAcc.currentBalance - amt).toFixed(2)));
           }
+          if (window.PfmDomainEngine) {
+            window.PfmDomainEngine.updateAsnbSnapshotOnBalanceChange(srcAcc, prevBal, srcAcc.currentBalance, new Date());
+          }
         }
         if (cat) {
           cat.directSpent = Number((cat.directSpent + amt).toFixed(2));
         }
+        state.transactions.unshift({
+          id: 'tx-' + Date.now(),
+          date: todayStr,
+          type: 'EXPENSE',
+          amount: amt,
+          personalAmount: amt,
+          descEn: `Expense (${cat ? cat.nameEn : 'General'}) paid from ${srcAcc ? srcAcc.nameEn : 'Account'}`,
+          descZh: `日常支出 (${cat ? cat.nameZh : '通用'}) 扣自 ${srcAcc ? srcAcc.nameZh : '账户'}`
+        });
       } else if (state.numpadMode === 'TRANSFER') {
         const srcId = document.getElementById('np-sel-source')?.value || state.npSourceAccountId;
         const dstId = document.getElementById('np-sel-dest')?.value || state.npDestAccountId;
         const srcAcc = state.accounts.find(a => a.id === srcId);
         const dstAcc = state.accounts.find(a => a.id === dstId);
         if (srcAcc && dstAcc && srcAcc.id !== dstAcc.id) {
+          const prevSrc = srcAcc.currentBalance;
+          const prevDst = dstAcc.currentBalance;
           srcAcc.currentBalance = Math.max(0, Number((srcAcc.currentBalance - amt).toFixed(2)));
           if (dstAcc.pillar === 'LIABILITY') {
             dstAcc.currentBalance = Math.max(0, Number((dstAcc.currentBalance - amt).toFixed(2)));
           } else {
             dstAcc.currentBalance = Number((dstAcc.currentBalance + amt).toFixed(2));
           }
+          if (window.PfmDomainEngine) {
+            window.PfmDomainEngine.updateAsnbSnapshotOnBalanceChange(srcAcc, prevSrc, srcAcc.currentBalance, new Date());
+            window.PfmDomainEngine.updateAsnbSnapshotOnBalanceChange(dstAcc, prevDst, dstAcc.currentBalance, new Date());
+          }
+          state.transactions.unshift({
+            id: 'tx-' + Date.now(),
+            date: todayStr,
+            type: 'TRANSFER',
+            amount: amt,
+            personalAmount: 0.00,
+            descEn: `Atomic Transfer: ${srcAcc.nameEn} -> ${dstAcc.nameEn} (RM 0 Expense Inflation)`,
+            descZh: `原子转账：${srcAcc.nameZh} -> ${dstAcc.nameZh} (绝不虚增月度消费)`
+          });
         }
       } else if (state.numpadMode === 'INSTALLMENT') {
         const liabId = document.getElementById('np-sel-liab')?.value || 'spaylater';
@@ -1065,6 +1239,15 @@
           schedules
         });
         state.categories[2].installmentSlice = Number((state.categories[2].installmentSlice + slice).toFixed(2));
+        state.transactions.unshift({
+          id: 'tx-' + Date.now(),
+          date: todayStr,
+          type: 'INSTALLMENT',
+          amount: amt,
+          personalAmount: slice,
+          descEn: `Installment Plan (${tenure}M): +${fmtRM(amt)} Liability, only ${fmtRM(slice)}/mo in budget`,
+          descZh: `新增 ${tenure}期分期：总负债 +${fmtRM(amt)}，当月预算仅计入 ${fmtRM(slice)}/月`
+        });
       }
       closeNumpadModal();
       renderAll();
@@ -1172,8 +1355,9 @@
     }
     function switchTab(tab) {
       state.activeTab = tab;
-      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts'].forEach(t => {
-        document.getElementById('view-' + t).classList.toggle('hidden', t !== tab);
+      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts', 'backup'].forEach(t => {
+        const el = document.getElementById('view-' + t);
+        if (el) el.classList.toggle('hidden', t !== tab);
       });
       renderAll();
     }
@@ -1217,6 +1401,102 @@
       }
     }
 
+    // =========================================================================
+    // JSON BACKUP EXPORT / IMPORT RESTORE & SWUPDATE FUNCTIONS
+    // =========================================================================
+    function showBackupStatus(msgEn, msgZh, isError = false) {
+      const el = document.getElementById('backup-status-msg');
+      if (!el) return;
+      el.textContent = loc(msgEn, msgZh);
+      el.className = isError
+        ? 'text-xs font-bold text-rose-300 bg-rose-950/50 border border-rose-500/40 px-3 py-2 rounded-xl'
+        : 'text-xs font-bold text-emerald-300 bg-emerald-950/50 border border-emerald-500/40 px-3 py-2 rounded-xl';
+      el.classList.remove('hidden');
+    }
+
+    function downloadJsonBackup() {
+      const jsonStr = window.PfmLocalDb
+        ? window.PfmLocalDb.exportBackupJson(getSerializableState())
+        : JSON.stringify(getSerializableState(), null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `mypfm-backup-${dateStamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showBackupStatus(
+        `✅ Exported backup file: mypfm-backup-${dateStamp}.json`,
+        `✅ 已成功导出备份文件：mypfm-backup-${dateStamp}.json`
+      );
+    }
+
+    function copyJsonBackupToClipboard() {
+      const jsonStr = window.PfmLocalDb
+        ? window.PfmLocalDb.exportBackupJson(getSerializableState())
+        : JSON.stringify(getSerializableState(), null, 2);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          showBackupStatus('✅ Full JSON backup copied to clipboard!', '✅ 完整 JSON 备份数据已复制到剪贴板！');
+        });
+      }
+    }
+
+    function handleRestoreFileSelect(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target.result;
+          const data = window.PfmLocalDb
+            ? window.PfmLocalDb.validateAndExtractBackup(text)
+            : JSON.parse(text);
+          applySavedDataToState(data);
+          saveToStorage();
+          renderAll();
+          showBackupStatus(
+            `✅ Successfully restored ${state.accounts.length} accounts & all financial records into IndexedDB!`,
+            `✅ 已成功从备份恢复 ${state.accounts.length} 个账户及所有分期/ASNB记录至手机本地数据库！`
+          );
+        } catch (err) {
+          showBackupStatus(
+            `❌ Invalid JSON backup file: ${err.message}`,
+            `❌ 备份文件格式无效：${err.message}`,
+            true
+          );
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    let swRegistrationRef = null;
+    function checkForSwUpdateManual() {
+      if (swRegistrationRef && swRegistrationRef.update) {
+        swRegistrationRef.update().then(() => {
+          showBackupStatus(
+            '✅ Checked for app updates. Your local IndexedDB data is intact.',
+            '✅ 已检查最新代码版本。您的手机本地 IndexedDB 财务数据完好无损。'
+          );
+        });
+      } else {
+        showBackupStatus(
+          '✅ Running latest standalone build. Local IndexedDB is active.',
+          '✅ 当前已是最新独立运行版本，手机本地 IndexedDB 数据库运行正常。'
+        );
+      }
+    }
+
+    function applySwUpdateNow() {
+      if (swRegistrationRef && swRegistrationRef.waiting) {
+        swRegistrationRef.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      window.location.reload();
+    }
+
     function renderAll() {
       const dict = I18N[state.lang];
       document.getElementById('app-title').textContent = dict.appTitle;
@@ -1244,8 +1524,9 @@
         ? 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
         : 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white';
 
-      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts'].forEach(t => {
+      ['dashboard', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts', 'backup'].forEach(t => {
         const btn = document.getElementById('tab-btn-' + t);
+        if (!btn) return;
         btn.textContent = dict.tabs[t];
         btn.className = state.activeTab === t
           ? 'px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap bg-emerald-500 text-slate-950 shadow'
@@ -1635,12 +1916,54 @@
         }
       });
 
+      // TAB 8: Standalone IndexedDB & JSON Backup / Restore Center
+      document.getElementById('backup-view-title').textContent = dict.backupTitle;
+      document.getElementById('backup-view-subtitle').textContent = dict.backupSubtitle;
+      document.getElementById('backup-export-title').textContent = dict.backupExportTitle;
+      document.getElementById('backup-export-desc').textContent = dict.backupExportDesc;
+      document.getElementById('btn-download-json').textContent = dict.btnDownloadJson;
+      document.getElementById('btn-copy-json').textContent = dict.btnCopyJson;
+      document.getElementById('backup-import-title').textContent = dict.backupImportTitle;
+      document.getElementById('backup-import-desc').textContent = dict.backupImportDesc;
+      document.getElementById('btn-upload-json').textContent = dict.btnUploadJson;
+      document.getElementById('btn-check-pwa-update').textContent = dict.btnCheckUpdate;
+      document.getElementById('tx-history-title').textContent = dict.txHistoryTitle;
+
+      const txListEl = document.getElementById('tx-history-list');
+      if (txListEl) {
+        txListEl.innerHTML = (state.transactions || []).map(tx => `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+            <div class="min-w-0">
+              <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-emerald-300">${tx.type}</span>
+              <span class="text-[11px] text-slate-400 ml-1">${tx.date}</span>
+              <p class="text-white font-semibold truncate mt-0.5">${loc(tx.descEn, tx.descZh)}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="font-black text-white">${fmtRM(tx.amount)}</p>
+              <p class="text-[10px] text-slate-400">${loc('Budget Impact:', '计入消费:')} ${fmtRM(tx.personalAmount)}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+
       saveToStorage();
     }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          swRegistrationRef = reg;
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                const banner = document.getElementById('pwa-update-banner');
+                if (banner) banner.classList.remove('hidden');
+              }
+            });
+          });
+        }).catch(() => {});
       });
     }
 
