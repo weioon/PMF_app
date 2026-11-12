@@ -4,6 +4,8 @@ const APP_SHELL_ASSETS = [
   './index.html',
   './manifest.json',
   './local-db.js',
+  './pfm-catalog.js',
+  './pfm-engine.js',
   './assets/i18n/en.json',
   './assets/i18n/zh-CN.json',
   'https://cdn.tailwindcss.com'

@@ -1,4 +1,4 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -31,7 +31,7 @@ export interface AccountItem {
   nameZh: string;
   currentBalance: number;
   minBalanceLimit: number;
-  interestMethod: 'NONE' | 'ASNB_MIN_MONTHLY' | 'DAILY_COMPOUND';
+  interestMethod: 'NONE' | 'ASNB_MIN_MONTHLY' | 'LOWEST_MONTHLY_BALANCE' | 'DAILY_COMPOUND' | 'FIXED_MATURITY' | 'DYNAMIC_TIERED_RATE';
   annualRate: number;
   lowestMonthlyBalance?: number;
   isZeroInterestLiquid?: boolean;
@@ -74,19 +74,24 @@ export class PfmDashboardComponent {
   // Invariant #3: UnrestrictedSpendableBalance = CurrentBalance - MinBalanceLimit - Sum(Envelopes) - Sum(UpcomingAutoDebits)
   calculateSafeToSpend(acc: AccountItem): number {
     if (acc.pillar !== 'ASSET_LIQUID') return 0;
-    const lockedEnv = acc.envelopes.reduce((s, e) => s + e.allocatedBalance, 0);
-    const upcomingDebits = acc.autoDebits.filter(d => d.dueInDays <= 7).reduce((s, d) => s + d.amount, 0);
-    return Math.max(0, Number((acc.currentBalance - acc.minBalanceLimit - lockedEnv - upcomingDebits).toFixed(2)));
+    const lockedEnv = (acc.envelopes || []).reduce((s, e) => s + (Number(e.allocatedBalance) || 0), 0);
+    const upcomingDebits = (acc.autoDebits || []).filter(d => d.dueInDays <= 7).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return Math.max(0, Number(((Number(acc.currentBalance) || 0) - (Number(acc.minBalanceLimit) || 0) - lockedEnv - upcomingDebits).toFixed(2)));
   }
 
   // Invariant #5: ASNB MonthlyDividend = (LowestMonthlyBalance * (AnnualRate / 100)) / 12
   calculateAsnbMonthlyDividend(lowestBalance: number, annualRate: number): number {
-    return Number(((lowestBalance * (annualRate / 100)) / 12).toFixed(2));
+    return Number((((Number(lowestBalance) || 0) * ((Number(annualRate) || 0) / 100)) / 12).toFixed(2));
   }
 
   // Invariant #5: DailyCompound = EndOfDayBalance * (AnnualRate / 100 / 365)
   calculateDailyCompound(balance: number, annualRate: number, days = 1): number {
-    return Number((balance * (annualRate / 100 / 365) * days).toFixed(2));
+    return Number(((Number(balance) || 0) * ((Number(annualRate) || 0) / 100 / 365) * days).toFixed(2));
+  }
+
+  // Safe DSR % computation guarding against 0 or negative monthly income
+  calculateDsrPercentage(monthlyDebtCommitment: number, netMonthlyIncome: number): number {
+    if (!netMonthlyIncome || netMonthlyIncome <= 0) return 0;
+    return Number((((Number(monthlyDebtCommitment) || 0) / netMonthlyIncome) * 100).toFixed(2));
   }
 }
-

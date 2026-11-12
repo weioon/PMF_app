@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
-import { AccountItem, InstallmentPlanItem } from '../features/dashboard/pfm-dashboard.component';
+import { AccountItem, InstallmentPlanItem } from '../../features/dashboard/pfm-dashboard.component';
 
 export interface LocalTransactionItem {
   id: string;

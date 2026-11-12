@@ -59,7 +59,56 @@
     "STATEMENT_FLOAT": "Credit Card Statement Float (100% Next Statement)",
     "AMORTIZED_INSTALLMENTS": "Amortized Monthly Installments",
     "PROGRESS_TEMPLATE": "{{paid}} of {{total}} paid, RM {{remaining}} remaining",
-    "PAY_NEXT_SLICE": "Pay Monthly Slice (RM {{amount}})"
+    "PAY_NEXT_SLICE": "Pay Monthly Slice (RM {{amount}})",
+    "MODE_A_TITLE": "Mode A: Auto-Split Calculator",
+    "MODE_B_TITLE": "Mode B: Direct Monthly Entry",
+    "TOTAL_DUE_MONTH": "Total Due This Month",
+    "TOTAL_OUTSTANDING": "Total Outstanding Debt",
+    "ACTIVE_PLANS": "Active Plans Stacked",
+    "PAY_THIS_MONTH": "Pay This Month",
+    "EARLY_SETTLEMENT": "Early Full Settlement",
+    "CUSTOM_AMOUNT": "Custom Amount",
+    "PENNY_PREVIEW": "Penny-Exact Amortization Preview",
+    "REPAYMENT_SUCCESS": "Installment repayment processed successfully!",
+    "EDIT_PLAN": "Edit Plan",
+    "DELETE_PLAN": "Delete Plan",
+    "EDIT_BILL": "Edit Bill",
+    "SAVE_BILL": "Save Bill Changes",
+    "DELETE_BILL": "Delete Monthly Bill",
+    "LINKED_AUTODEBIT": "Linked Auto-Debit Account"
+  },
+  "CONFIRMATION_MODAL": {
+    "TITLE": "Confirm Transaction Details",
+    "TRANSACTION_TYPE": "Transaction Type",
+    "AMOUNT": "Transaction Amount",
+    "ACCOUNT_IMPACT": "Account & Balance Impact",
+    "BALANCE_BEFORE_AFTER": "Current Balance: RM {{before}} -> Balance After: RM {{after}}",
+    "CATEGORY": "Category & Sub-Category",
+    "DATE_TIME": "Date & Time",
+    "NOTES_MERCHANT": "Notes / Merchant",
+    "BACK_TO_EDIT": "Back to Edit",
+    "CONFIRM_AND_SAVE": "Confirm & Save"
+  },
+  "HISTORY_LEDGER": {
+    "TITLE": "Transaction History",
+    "SUBTITLE": "Chronological Double-Entry Ledger with Date & Account Drill-Down",
+    "FILTER_MONTH": "Month / Date Range",
+    "FILTER_TYPE": "Transaction Type",
+    "FILTER_ACCOUNT": "Account",
+    "FILTER_CATEGORY": "Category",
+    "SEARCH_PLACEHOLDER": "Search merchant, notes, or amount...",
+    "DAILY_INFLOW": "Daily Total Inflow",
+    "DAILY_OUTFLOW": "Daily Total Outflow",
+    "AUTO_DETECTED_BADGE": "Auto-Detected",
+    "INSPECT_EDIT": "Inspect / Edit Transaction",
+    "DELETE_AND_REVERSE": "Delete & Reverse Balance"
+  },
+  "NOTIFICATION_ENGINE": {
+    "TITLE": "Android Push Notification Auto-Detection Engine",
+    "ENABLE_BUTTON": "Enable Notification Auto-Tracking",
+    "SIMULATE_BUTTON": "Simulate Payment Notification",
+    "PACKAGE_MAPPING": "Malaysian Financial App Package to Account Mapping",
+    "AUTO_RECORDED_TOAST": "Auto-recorded RM {{amount}} ({{merchant}}) from {{accountName}}"
   },
   "ASNB": {
     "TITLE": "ASNB Minimum Monthly Balance & Daily Compounding Calculator",
@@ -89,6 +138,29 @@
       "BODY": "You deposited RM {{depositAmount}} into {{accountName}} on Day {{dayOfMonth}}. Because ASNB calculates monthly dividends on the lowest balance held between Day 1 and month-end, this deposit will start earning full monthly dividends (~RM {{missedDividend}}/mo) from next month. Tip: Transfer between the 25th and last day of the month!"
     },
     "EXECUTE_SUGGESTED_TRANSFER": "Execute Suggested Transfer (RM {{amount}})"
+  },
+  "YIELD": {
+    "TITLE": "Universal Intelligent Yield Engine",
+    "SUBTITLE": "Daily Rest, ASNB Min Monthly, Fixed Deposit Maturity, & Tiered Rates",
+    "TODAY_RETURN": "Today's Daily Return",
+    "MONTH_ACCRUED": "Current Month Accrued Yield",
+    "YTD_PROJECTED": "YTD & Projected Annual Return",
+    "RULES": {
+      "NONE": "No Interest (0%)",
+      "DAILY_COMPOUND": "Daily Rest Compound (GXBank, Ryt Bank, Versa, KDI)",
+      "LOWEST_MONTHLY_BALANCE": "Minimum Monthly Balance (ASNB ASM / ASB)",
+      "FIXED_MATURITY": "Fixed Deposit / Term Deposit (Tenure & Maturity Return)",
+      "DYNAMIC_TIERED_RATE": "Tiered Interest (Balance Brackets)"
+    },
+    "MATURED": "MATURED",
+    "PROJECTED_ANNUAL": "Projected Annual",
+    "PER_DAY": "day"
+  },
+  "ONBOARDING": {
+    "TITLE": "Welcome to MyPFM",
+    "SUBTITLE": "100% Offline Standalone Malaysian Wealth & Double-Entry Ledger",
+    "QUICK_START": "Quick Start (Pick Malaysian Institutions)",
+    "CLEAN_SLATE": "Clean Canvas (Zero Accounts)",
+    "LOAD_DEMO": "Load Full Sample Demo Data"
   }
 }
-

@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "src/main.ts",
+    "src/app/features/dashboard/pfm-dashboard.component.ts",
+    "src/app/core/services/local-pfm-dexie.service.ts",
+    "src/app/core/services/pwa-update.service.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts"
+  ]
+}
+

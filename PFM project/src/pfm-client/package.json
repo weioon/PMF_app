@@ -5,6 +5,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "test": "node tests/qa-7point-audit.spec.js",
     "build": "node scripts/build-standalone.js",
     "build:ng": "ng build --configuration production",
     "pwa:build": "node scripts/build-standalone.js",

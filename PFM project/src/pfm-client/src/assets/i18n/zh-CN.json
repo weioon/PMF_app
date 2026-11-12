@@ -59,7 +59,56 @@
     "STATEMENT_FLOAT": "信用卡账单免息期消费 (下期全额还款)",
     "AMORTIZED_INSTALLMENTS": "分期付款计划 (SPayLater 3期)",
     "PROGRESS_TEMPLATE": "已还 {{paid}}/{{total}} 期，剩余 RM {{remaining}}",
-    "PAY_NEXT_SLICE": "偿还本期账单 (RM {{amount}})"
+    "PAY_NEXT_SLICE": "偿还本期账单 (RM {{amount}})",
+    "MODE_A_TITLE": "模式 A：智能分期计算器",
+    "MODE_B_TITLE": "模式 B：自由月度录入",
+    "TOTAL_DUE_MONTH": "本月应还分期总额",
+    "TOTAL_OUTSTANDING": "累计未还分期负债",
+    "ACTIVE_PLANS": "活跃分期计划数",
+    "PAY_THIS_MONTH": "支付本期分期",
+    "EARLY_SETTLEMENT": "提前全额结清",
+    "CUSTOM_AMOUNT": "自定义还款金额",
+    "PENNY_PREVIEW": "精确到分的分期试算预览",
+    "REPAYMENT_SUCCESS": "分期还款记录已成功执行并记账！",
+    "EDIT_PLAN": "编辑分期计划",
+    "DELETE_PLAN": "删除分期计划",
+    "EDIT_BILL": "修改账单",
+    "SAVE_BILL": "保存账单修改",
+    "DELETE_BILL": "删除此期账单",
+    "LINKED_AUTODEBIT": "关联自动扣款账户"
+  },
+  "CONFIRMATION_MODAL": {
+    "TITLE": "确认交易详情",
+    "TRANSACTION_TYPE": "交易类型",
+    "AMOUNT": "交易金额",
+    "ACCOUNT_IMPACT": "关联账户与余额变化",
+    "BALANCE_BEFORE_AFTER": "当前余额: RM {{before}} -> 交易后余额: RM {{after}}",
+    "CATEGORY": "消费分类与子分类",
+    "DATE_TIME": "日期与时间",
+    "NOTES_MERCHANT": "备注 / 商户名称",
+    "BACK_TO_EDIT": "返回修改",
+    "CONFIRM_AND_SAVE": "确认并保存"
+  },
+  "HISTORY_LEDGER": {
+    "TITLE": "交易历史明细",
+    "SUBTITLE": "按日期分组的复式记账明细流水与账户专属账单穿透",
+    "FILTER_MONTH": "月份 / 自定义日期范围",
+    "FILTER_TYPE": "交易类型",
+    "FILTER_ACCOUNT": "关联账户",
+    "FILTER_CATEGORY": "消费分类",
+    "SEARCH_PLACEHOLDER": "搜索商户名称、备注或金额...",
+    "DAILY_INFLOW": "当日总流入",
+    "DAILY_OUTFLOW": "当日总流出",
+    "AUTO_DETECTED_BADGE": "自动记账",
+    "INSPECT_EDIT": "查看 / 修改历史交易",
+    "DELETE_AND_REVERSE": "删除并回滚余额"
+  },
+  "NOTIFICATION_ENGINE": {
+    "TITLE": "安卓通知自动记账引擎",
+    "ENABLE_BUTTON": "开启通知自动记账",
+    "SIMULATE_BUTTON": "模拟支付通知测试",
+    "PACKAGE_MAPPING": "马来西亚金融应用包名与账户映射绑定",
+    "AUTO_RECORDED_TOAST": "已自动记账 RM {{amount}} ({{merchant}}) • 扣自 {{accountName}}"
   },
   "ASNB": {
     "TITLE": "ASNB 每月最低余额分红计算器与每日复利引擎",
@@ -89,6 +138,29 @@
       "BODY": "您于本月第 {{dayOfMonth}} 日向 {{accountName}} 存入了 RM {{depositAmount}}。由于 ASNB 按每月1日至月末的最低余额计算当月分红，该笔资金将从下月1日起正式计入全月分红基数（预计每月约 RM {{missedDividend}}）。小贴士：建议在每月25日至月末之间转入 ASNB！"
     },
     "EXECUTE_SUGGESTED_TRANSFER": "一键执行建议转账 (RM {{amount}})"
+  },
+  "YIELD": {
+    "TITLE": "通用智能收益计算引擎",
+    "SUBTITLE": "每日复利、ASNB最低月结、定期存款到期收益与分档利率",
+    "TODAY_RETURN": "今日预计收益",
+    "MONTH_ACCRUED": "本月累计收益",
+    "YTD_PROJECTED": "本年累计与预计年化收益",
+    "RULES": {
+      "NONE": "无利息 (0%)",
+      "DAILY_COMPOUND": "每日复利计息 (GXBank, Ryt Bank, Versa, KDI)",
+      "LOWEST_MONTHLY_BALANCE": "最低月结计息 (ASNB ASM / ASB)",
+      "FIXED_MATURITY": "定期存款到期返息 (Fixed Deposit)",
+      "DYNAMIC_TIERED_RATE": "阶梯分档计息 (Tiered Rate)"
+    },
+    "MATURED": "已到期",
+    "PROJECTED_ANNUAL": "预计年化",
+    "PER_DAY": "天"
+  },
+  "ONBOARDING": {
+    "TITLE": "欢迎使用 MyPFM",
+    "SUBTITLE": "100% 独立离线运行的大马个人财务与复式记账系统",
+    "QUICK_START": "快速开始（自选大马常用金融机构）",
+    "CLEAN_SLATE": "从空白开始（0 账户全新账本）",
+    "LOAD_DEMO": "加载完整演示示例数据"
   }
 }
-

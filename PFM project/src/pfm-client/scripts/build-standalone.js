@@ -35,7 +35,7 @@ console.log('==============================================================');
 fs.mkdirSync(outDir, { recursive: true });
 
 // Copy standalone app files (index.html, local-db.js, sw.js, manifest.json, assets/)
-const filesToCopy = ['index.html', 'local-db.js', 'sw.js', 'manifest.json', 'assets'];
+const filesToCopy = ['index.html', 'local-db.js', 'pfm-catalog.js', 'pfm-engine.js', 'sw.js', 'manifest.json', 'assets'];
 filesToCopy.forEach((item) => {
   const srcPath = path.join(srcDir, item);
   const dstPath = path.join(outDir, item);
