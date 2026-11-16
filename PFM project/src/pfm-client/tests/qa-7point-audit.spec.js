@@ -693,6 +693,116 @@ function createMockBrowserStorageEnv() {
     assert.strictEqual(state.accounts.find(a => a.id === 'tng-nfc').currentBalance, 60.00, 'TnG NFC Card increased by RM 50.00 (10 -> 60)');
   });
 
+  verify('Test 5.4 (Smart Merchant Auto-Categorization + Self-Learning Notification Rules)', () => {
+    const state = Engine.createEmptyData();
+    Engine.createAccountFromCatalog(state, 'TNG_EWALLET', { currentBalance: 500 }, Catalog, { today: '2026-11-16' });
+    const baseTs = 1763300000000;
+
+    // 1. Built-in Malaysian Merchant Dictionary: 99 SPEEDMART -> cat-food, PETRONAS -> cat-transport
+    const r1 = Engine.ingestNotification(state, {
+      packageName: 'my.com.tngdigital.ewallet',
+      title: 'Payment Successful',
+      text: 'You have paid RM 14.20 to 99 SPEEDMART',
+      postedAt: baseTs
+    }, { today: '2026-11-16', catalog: Catalog });
+    assert.strictEqual(r1.categoryId, 'cat-food', '99 SPEEDMART auto-categorized into cat-food');
+
+    const r2 = Engine.ingestNotification(state, {
+      packageName: 'my.com.tngdigital.ewallet',
+      title: 'Payment Successful',
+      text: 'You have paid RM 50.00 at PETRONAS SETEL',
+      postedAt: baseTs + 5000
+    }, { today: '2026-11-16', catalog: Catalog });
+    assert.strictEqual(r2.categoryId, 'cat-transport', 'PETRONAS SETEL auto-categorized into cat-transport');
+
+    // 2. Self-Learning Rule: Unknown merchant defaults to cat-other, user edits to cat-shopping -> next tx auto-matches cat-shopping
+    const r3 = Engine.ingestNotification(state, {
+      packageName: 'my.com.tngdigital.ewallet',
+      title: 'Payment Successful',
+      text: 'You have paid RM 25.00 to KEDAI BUKU BESTARI',
+      postedAt: baseTs + 10000
+    }, { today: '2026-11-16', catalog: Catalog });
+    assert.strictEqual(r3.categoryId, Engine.OTHER_CATEGORY_ID, 'Unknown merchant starts in cat-other');
+
+    Engine.editTransaction(state, r3.txId, { categoryId: 'cat-shopping', learnRule: true }, { today: '2026-11-16' });
+
+    const r4 = Engine.ingestNotification(state, {
+      packageName: 'my.com.tngdigital.ewallet',
+      title: 'Payment Successful',
+      text: 'You have paid RM 18.00 to KEDAI BUKU BESTARI',
+      postedAt: baseTs + 15000
+    }, { today: '2026-11-16', catalog: Catalog });
+    assert.strictEqual(r4.categoryId, 'cat-shopping', 'Self-learned merchant rule automatically applies cat-shopping on next notification');
+  });
+
+  verify('Test 2.E & 6.2 (Split-Bill AA Settlement, LHDN Tax Tagging, Category CRUD, Analytics Runway, Recurring Bills & Salary+EPF)', () => {
+    const state = Engine.createEmptyData();
+    const bank = Engine.createAccount(state, {
+      id: 'bank-main', pillar: 'ASSET_LIQUID', nameEn: 'Maybank Main', currentBalance: 2000,
+      envelopes: [{ id: 'env-tech', nameEn: 'Tech Fund', allocated: 500, target: 1000 }]
+    }, { today: '2026-11-16' });
+    const epf = Engine.createAccountFromCatalog(state, 'EPF', { currentBalance: 10000 }, Catalog, { today: '2026-11-16' });
+
+    // 1. Split Bill RM 120 (My share RM 40 + Ali owes RM 80) + LHDN Lifestyle + Envelope deduction
+    const splitTx = Engine.postTransaction(state, {
+      type: 'EXPENSE',
+      fromAccountId: bank.id,
+      amount: 120,
+      personalAmount: 40,
+      debtorName: 'Ali',
+      envelopeId: 'env-tech',
+      taxCategoryCode: 'LHDN_LIFESTYLE',
+      categoryId: 'cat-shopping',
+      note: 'Router & Keyboard',
+      date: '2026-11-16'
+    }, { today: '2026-11-16' });
+
+    assert.strictEqual(bank.currentBalance, 1880.00, 'Bank decreased by full RM 120');
+    assert.strictEqual(bank.envelopes[0].allocated, 380.00, 'Envelope decreased by RM 120 (500 -> 380)');
+    assert.strictEqual(state.taxBuckets.find(b => b.code === 'LHDN_LIFESTYLE').claimed, 40.00, 'LHDN claimed RM 40 personal share');
+    assert.strictEqual(state.reimbursements.length, 1, 'Reimbursement created automatically');
+    assert.strictEqual(state.reimbursements[0].owedAmount, 80.00, 'Ali owes exact RM 80.00');
+
+    // Settle Ali's RM 80 back into Maybank atomically
+    Engine.settleReimbursement(state, state.reimbursements[0].id, bank.id, { today: '2026-11-16' });
+    assert.strictEqual(bank.currentBalance, 1960.00, 'Bank credited RM 80.00 back from Ali');
+    assert.strictEqual(state.reimbursements[0].settled, true, 'Reimbursement marked settled');
+    const rollupAfterSettle = Engine.computeRollup(state, { today: '2026-11-16' });
+    assert.strictEqual(rollupAfterSettle.monthSpend, 40.00, 'Monthly spend remains true personal RM 40');
+    assert.strictEqual(rollupAfterSettle.monthIncome, 0.00, 'Reimbursement settlement does not falsely inflate earned monthIncome');
+
+    // 2. Custom Category CRUD + reassign orphaned tx on delete
+    const customCat = Engine.upsertCategory(state, { nameEn: 'Gadgets', nameZh: '数码', icon: '💻', budget: 500 });
+    assert.strictEqual(customCat.budget, 500.00);
+    Engine.editTransaction(state, splitTx.id, { categoryId: customCat.id }, { today: '2026-11-16' });
+    Engine.deleteCategory(state, customCat.id);
+    assert.strictEqual(Engine.findTx(state, splitTx.id).categoryId, Engine.OTHER_CATEGORY_ID, 'Deleted category reassigns transactions to Other');
+
+    // 3. Recurring Bill & Malaysian Salary + EPF Auto-Credit
+    const bill = Engine.upsertRecurringBill(state, { nameEn: 'Unifi', nameZh: 'Unifi', type: 'EXPENSE', amount: 100, dayOfMonth: 18, fromAccountId: bank.id, categoryId: 'cat-bills' });
+    Engine.postRecurringBill(state, bill.id, { today: '2026-11-16', date: '2026-11-16' });
+    assert.strictEqual(bank.currentBalance, 1860.00, 'Recurring Unifi RM 100 deducted');
+    assert.strictEqual(Engine.getPendingRecurringBills(state, '2026-11-16').length, 0, 'Posted bill no longer pending for 2026-11');
+
+    const payRes = Engine.creditSalaryWithEpf(state, {
+      netSalary: 4000,
+      grossSalary: 5000,
+      toAccountId: bank.id,
+      epfAccountId: epf.id,
+      employeeEpfRate: 11,
+      employerEpfRate: 13,
+      date: '2026-11-25'
+    }, { today: '2026-11-16' });
+    assert.strictEqual(bank.currentBalance, 5860.00, 'Net Salary +RM 4,000 credited to bank');
+    assert.strictEqual(payRes.epfContribution, 1200.00, 'EPF 24% of RM 5,000 = RM 1,200');
+    assert.strictEqual(epf.currentBalance, 11200.00, 'EPF account increased by RM 1,200');
+
+    // 4. Analytics & Emergency Runway
+    const analytics = Engine.computeAnalytics(state, '2026-11-16');
+    assert(analytics.emergencyRunwayMonths > 0 && Number.isFinite(analytics.emergencyRunwayMonths), 'Emergency runway calculated cleanly');
+    assert.strictEqual(analytics.sixMonthCashflow.length, 6, '6-month cashflow series generated');
+  });
+
   // =========================================================================
   // 6. UI / UX & ANGULAR REACTIVITY / ZERO-DIVISION AUDIT
   // =========================================================================
@@ -706,13 +816,19 @@ function createMockBrowserStorageEnv() {
     assert(html.includes('c.budget > 0 ? Math.min(100, Math.round((totalCommitted / c.budget) * 100)) : 0'), 'Category budget % guards against c.budget === 0');
     assert(html.includes('b.cap > 0 ? Math.min(100, Math.round((b.claimed / b.cap) * 100)) : 0'), 'Tax bucket % guards against b.cap === 0');
     assert(html.includes('function evaluateLocalizedAlerts()'), 'evaluateLocalizedAlerts() is defined in index.html');
-    assert(html.includes('function todayStr()'), 'todayStr() is defined in global scope of index.html');
+    assert(html.includes('function todayStr('), 'todayStr() is defined in global scope of index.html');
     assert(html.includes('if (!Number.isFinite(amt) || amt <= 0)'), 'Numpad form blocks 0 or negative transaction amounts');
     assert(html.includes('id="tx-confirmation-modal"'), 'Pre-submission confirmation modal exists in index.html');
     assert(html.includes('id="view-history"'), 'Dedicated Transaction History view exists in index.html');
     assert(html.includes('id="edit-installment-plan-modal"'), 'Edit Installment Plan modal exists in index.html');
     assert(html.includes('id="edit-schedule-bill-modal"'), 'Edit Monthly Bill modal exists in index.html');
     assert(html.includes('id="tx-inspect-modal"'), 'Historical Transaction Inspect/Edit/Delete modal exists in index.html');
+    assert(html.includes('id="analytics-visual-row"'), 'Visual Analytics SVG charts exist in index.html');
+    assert(html.includes('id="btn-privacy-toggle"'), 'Privacy blur toggle exists in index.html');
+    assert(html.includes('id="category-edit-modal"'), 'Category CRUD modal exists in index.html');
+    assert(html.includes('id="recurring-bill-modal"'), 'Recurring Bill modal exists in index.html');
+    assert(html.includes('id="salary-credit-modal"'), 'Salary & EPF credit modal exists in index.html');
+    assert(html.includes('id="np-chk-split"'), 'Numpad Split Bill toggle exists in index.html');
     assert(html.includes('function simulatePaymentNotification('), 'Notification simulator exists in index.html');
 
     // Also test Engine.computeRollup on a completely empty state (0 income, 0 accounts, 0 transactions)

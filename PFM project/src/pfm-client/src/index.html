@@ -47,6 +47,11 @@
       </div>
 
       <div class="flex items-center gap-1.5 shrink-0">
+        <!-- 1-Tap Privacy Mask Toggle -->
+        <button onclick="togglePrivacyMode()" id="btn-privacy-toggle" class="tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1" title="Privacy Blur Mode (Hide/Show Balances)">
+          <span id="icon-privacy-toggle">👁️</span>
+        </button>
+
         <!-- Backup / Restore Quick Button -->
         <button onclick="switchTab('backup')" class="tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1" title="JSON Backup & Restore">
           <span>💾</span>
@@ -100,6 +105,28 @@
     <!-- TAB 1: 4-PILLAR ROLL-UP DASHBOARD & DIRECT ACCOUNT BALANCE EDITOR -->
     <section id="view-dashboard" class="space-y-4">
       <div id="kpi-cards-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5"></div>
+
+      <!-- INTERACTIVE VISUAL ANALYTICS: SPENDING DONUT, 6M CASHFLOW & EMERGENCY RUNWAY -->
+      <div id="analytics-visual-row" class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+        <!-- Card 1: Category Spend Donut Chart -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="lbl-chart-cat-title" class="text-xs sm:text-sm font-extrabold text-white">Category Spending Breakdown (本月支出分布)</h3>
+            <span id="badge-mom-delta" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">MoM: 0%</span>
+          </div>
+          <div id="chart-category-donut-wrap" class="flex flex-col sm:flex-row items-center gap-4"></div>
+        </div>
+
+        <!-- Card 2: Emergency Runway Health & 6-Month Cashflow Chart -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="lbl-chart-runway-title" class="text-xs sm:text-sm font-extrabold text-white">Financial Health & 6M Cashflow (紧急备用金与收支趋势)</h3>
+            <span id="badge-runway-grade" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">0.0 Months</span>
+          </div>
+          <div id="chart-cashflow-bars-wrap" class="space-y-2.5"></div>
+        </div>
+      </div>
+
       <!-- UNIVERSAL YIELD ENGINE LIVE DASHBOARD CARD -->
       <div id="universal-yield-card" class="bg-gradient-to-br from-slate-900 to-slate-950 border border-teal-500/40 rounded-2xl p-4 shadow-xl space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
@@ -247,15 +274,41 @@
 
     <!-- TAB 2: CATEGORY ROLL-UP SUMMARIES & VELOCITY DAILY CAPS -->
     <section id="view-categories" class="hidden space-y-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-        <h2 id="cat-rollup-title" class="text-base font-bold text-white mb-1"></h2>
-        <p id="cat-rollup-subtitle" class="text-xs text-slate-400 mb-3.5"></p>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h2 id="cat-rollup-title" class="text-base font-bold text-white mb-0.5"></h2>
+            <p id="cat-rollup-subtitle" class="text-xs text-slate-400"></p>
+          </div>
+          <button onclick="openCategoryModal(null)" id="btn-add-category" class="tap-scale px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow">
+            + Add Category (新增分类)
+          </button>
+        </div>
         <div id="category-rollup-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
       </div>
     </section>
 
-    <!-- TAB 3: 30-DAY CASHFLOW PROJECTION CALENDAR -->
+    <!-- TAB 3: 30-DAY CASHFLOW PROJECTION CALENDAR & RECURRING BILLS + PAYDAY EPF -->
     <section id="view-calendar" class="hidden space-y-4">
+      <!-- Recurring Subscriptions, Bills & Payday EPF Manager -->
+      <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-4 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div>
+            <h3 id="rec-bills-title" class="text-sm sm:text-base font-extrabold text-white">Recurring Bills, Subscriptions & Payday EPF (周期账单与发薪自动分账)</h3>
+            <p id="rec-bills-subtitle" class="text-xs text-slate-400">1-Tap post monthly bills (Unifi, Netflix, Insurance) or credit Net Salary + EPF into KWSP automatically.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="openSalaryCreditModal()" id="btn-open-salary-epf" class="tap-scale px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow">
+              💰 Credit Salary + EPF
+            </button>
+            <button onclick="openRecurringBillModal(null)" id="btn-add-recurring-bill" class="tap-scale px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-black text-xs shadow">
+              + Add Recurring Bill
+            </button>
+          </div>
+        </div>
+        <div id="recurring-bills-container" class="grid grid-cols-1 md:grid-cols-2 gap-2.5"></div>
+      </div>
+
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3.5">
         <div>
           <h2 id="cal-view-title" class="text-base font-bold text-white"></h2>
@@ -418,6 +471,15 @@
           <div class="border-t border-slate-800 pt-3 space-y-2">
             <h4 id="lbl-notif-pkg-map-title" class="text-xs font-bold text-white">Malaysian Financial App Package → Account Mapping</h4>
             <div id="notif-package-mapping-list" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs"></div>
+          </div>
+
+          <!-- Learned Smart Merchant Auto-Categorization Rules -->
+          <div class="border-t border-slate-800 pt-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-emerald-300">🤖 Smart Merchant Auto-Categorization Rules (商户智能自动分类规则)</h4>
+              <span class="text-[10px] text-slate-400">Built-in + Self-Learning</span>
+            </div>
+            <div id="notif-merchant-rules-list" class="flex flex-wrap gap-1.5 text-xs"></div>
           </div>
 
           <!-- Simulate Payment Notification Test Bar -->
@@ -896,6 +958,7 @@
 
     const state = {
       lang: 'en',
+      privacyMode: false,
       systemInitialized: false,
       activeTab: 'dashboard',
       selectedPillarFilter: 'ALL',
@@ -909,14 +972,17 @@
       netMonthlyIncome: 0.00,
       asnbTimingTipTriggered: false,
       accounts: [],
-      categories: [
-        { id: 'cat-food', code: 'FOOD_DINING', nameEn: 'Food & Dining', nameZh: '餐饮美食', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
-        { id: 'cat-transport', code: 'TRANSPORT_TOLL', nameEn: 'Transport, Toll & Parking', nameZh: '交通、过路费与停车', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
-        { id: 'cat-shopping', code: 'SHOPPING_TECH', nameEn: 'Shopping, Tech & Lifestyle', nameZh: '购物、数码与生活', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
-        { id: 'cat-insurance', code: 'INSURANCE', nameEn: 'Insurance & Protection', nameZh: '保险与医疗保障', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
-        { id: 'cat-fees', code: 'BANK_FEES', nameEn: 'Bank & Transfer Fees', nameZh: '银行与转账手续费', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 }
+      categories: window.PfmEngine ? window.PfmEngine.defaultCategories().map(c => Object.assign({}, c, { directSpent: 0, installmentSlice: 0 })) : [
+        { id: 'cat-food', code: 'FOOD_DINING', nameEn: 'Food & Dining', nameZh: '餐饮美食', icon: '🍜', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-transport', code: 'TRANSPORT_TOLL', nameEn: 'Transport, Toll & Parking', nameZh: '交通、过路费与停车', icon: '🚗', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-shopping', code: 'SHOPPING_TECH', nameEn: 'Shopping, Tech & Lifestyle', nameZh: '购物、数码与生活', icon: '🛍️', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-bills', code: 'BILLS_UTILITIES', nameEn: 'Bills & Utilities', nameZh: '账单与水电费', icon: '⚡', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-insurance', code: 'INSURANCE', nameEn: 'Insurance & Protection', nameZh: '保险与医疗保障', icon: '🛡️', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-fees', code: 'BANK_FEES', nameEn: 'Bank & Transfer Fees', nameZh: '银行与转账手续费', icon: '🏦', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 },
+        { id: 'cat-other', code: 'OTHER', nameEn: 'Other / Uncategorised', nameZh: '其他 / 未分类', icon: '📌', budget: 0.00, directSpent: 0.00, installmentSlice: 0.00 }
       ],
       installmentPlans: [],
+      recurringBills: [],
       reimbursements: [],
       taxBuckets: [
         { code: 'LHDN_LIFESTYLE', nameEn: 'Lifestyle (Books, PC, Smartphone, Internet)', nameZh: '生活方式减免（书籍、电脑、手机、宽带）', cap: 2500.00, claimed: 0.00 },
@@ -926,6 +992,8 @@
       transactions: [],
       asnbSnapshots: []
     };
+
+    try { state.privacyMode = localStorage.getItem('MYPFM_PRIVACY_MODE') === 'true'; } catch (e) {}
 
     const STORAGE_KEY = 'mypfm_data_v2';
     const DUMMY_PURGED_KEY = 'MYPFM_V3_DUMMY_PURGED';
@@ -966,8 +1034,10 @@
       return hasV2DummySignature || beforeAcc !== afterAcc || beforeTx !== afterTx;
     }
 
-    function todayStr() {
-      return window.PfmEngine ? window.PfmEngine.todayStr() : new Date().toISOString().split('T')[0];
+    function todayStr(dt) {
+      if (window.PfmEngine) return window.PfmEngine.todayStr(dt);
+      const d = dt instanceof Date ? dt : new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
     function getSerializableState() {
@@ -978,11 +1048,12 @@
         accounts: state.accounts,
         categories: state.categories,
         installmentPlans: state.installmentPlans,
+        recurringBills: state.recurringBills || [],
         reimbursements: state.reimbursements,
         taxBuckets: state.taxBuckets,
         transactions: state.transactions,
         asnbSnapshots: state.asnbSnapshots,
-        notificationState: state.notificationState || { dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [], packageAccountMap: {} },
+        notificationState: state.notificationState || { dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [], packageAccountMap: {}, merchantRules: {} },
         settings: state.settings || { autoCreateFromNotifications: false, notificationListenerEnabled: true },
         netMonthlyIncome: state.netMonthlyIncome,
         lang: state.lang
@@ -994,20 +1065,33 @@
       const wasPurged = purgeLegacyV2DummyFromSaved(saved);
       state.systemInitialized = true;
       if (Array.isArray(saved.accounts)) state.accounts = saved.accounts;
-      if (Array.isArray(saved.categories) && saved.categories.length) state.categories = saved.categories;
+      if (Array.isArray(saved.categories) && saved.categories.length) {
+        const defIcons = { 'cat-food': '🍜', 'cat-transport': '🚗', 'cat-shopping': '🛍️', 'cat-bills': '⚡', 'cat-insurance': '🛡️', 'cat-fees': '🏦', 'cat-other': '📌' };
+        state.categories = saved.categories.map(c => Object.assign({ icon: defIcons[c.id] || '📌' }, c));
+        if (!state.categories.some(c => c.id === 'cat-bills')) {
+          state.categories.splice(3, 0, { id: 'cat-bills', code: 'BILLS_UTILITIES', nameEn: 'Bills & Utilities', nameZh: '账单与水电费', icon: '⚡', budget: 0 });
+        }
+        if (!state.categories.some(c => c.id === 'cat-other')) {
+          state.categories.push({ id: 'cat-other', code: 'OTHER', nameEn: 'Other / Uncategorised', nameZh: '其他 / 未分类', icon: '📌', budget: 0 });
+        }
+      }
       if (Array.isArray(saved.installmentPlans)) state.installmentPlans = saved.installmentPlans;
+      if (Array.isArray(saved.recurringBills)) state.recurringBills = saved.recurringBills;
       if (Array.isArray(saved.reimbursements)) state.reimbursements = saved.reimbursements;
       if (Array.isArray(saved.taxBuckets) && saved.taxBuckets.length) state.taxBuckets = saved.taxBuckets;
       if (Array.isArray(saved.transactions)) state.transactions = saved.transactions;
       if (Array.isArray(saved.asnbSnapshots)) state.asnbSnapshots = saved.asnbSnapshots;
       if (saved.notificationState && typeof saved.notificationState === 'object') {
-        state.notificationState = Object.assign({ dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [], packageAccountMap: {} }, saved.notificationState);
+        state.notificationState = Object.assign({ dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [], packageAccountMap: {}, merchantRules: {} }, saved.notificationState);
       }
       if (saved.settings && typeof saved.settings === 'object') {
         state.settings = Object.assign({ autoCreateFromNotifications: false, notificationListenerEnabled: true }, saved.settings);
       }
       if (saved.netMonthlyIncome !== undefined && saved.netMonthlyIncome !== null) state.netMonthlyIncome = Number(saved.netMonthlyIncome) || 0;
       if (saved.lang) state.lang = saved.lang;
+      if (window.PfmEngine && window.PfmEngine.recomputeTaxBuckets) {
+        window.PfmEngine.recomputeTaxBuckets(state, todayStr().slice(0, 4));
+      }
       if (wasPurged) {
         saveToStorage();
       }
@@ -1071,7 +1155,15 @@
 
     function isZh() { return state.lang === 'zh-CN'; }
     function loc(en, zh) { return isZh() ? zh : en; }
-    function fmtRM(val) { return 'RM ' + Number(val || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtRM(val) {
+      if (state.privacyMode) return 'RM ••••••';
+      return 'RM ' + Number(val || 0).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function togglePrivacyMode() {
+      state.privacyMode = !state.privacyMode;
+      try { localStorage.setItem('MYPFM_PRIVACY_MODE', state.privacyMode ? 'true' : 'false'); } catch (e) {}
+      renderAll();
+    }
 
     function calcSafeToSpend(acc) {
       if (window.PfmDomainEngine) {
@@ -1372,6 +1464,20 @@
       if (state.numpadMode === 'EXPENSE') {
         const srcId = document.getElementById('np-sel-source')?.value || state.npSourceAccountId;
         const catId = document.getElementById('np-sel-cat')?.value || state.npCategoryId || 'cat-food';
+        const envId = document.getElementById('np-sel-env')?.value || null;
+        const taxCode = document.getElementById('np-sel-tax')?.value || null;
+        const isSplit = !!document.getElementById('np-chk-split')?.checked;
+        let personalAmt = amt;
+        let debtorName = '';
+        if (isSplit) {
+          const rawPersonal = parseFloat(document.getElementById('np-inp-personal-amt')?.value);
+          if (!Number.isFinite(rawPersonal) || rawPersonal < 0 || rawPersonal >= amt) {
+            alert(loc('For Split Bill, "My Share" must be between RM 0.00 and less than the Total Paid amount.', 'AA 分账模式下，“我的实际承担金额”必须大于等于 0 且小于实付总额。'));
+            return;
+          }
+          personalAmt = Number(rawPersonal.toFixed(2));
+          debtorName = (document.getElementById('np-inp-debtor-name')?.value || '').trim() || loc('Friend (Split Bill)', '朋友 AA 代垫');
+        }
         if (!srcId) {
           alert(loc('Please add and select a source account first.', '请先添加并选择付款账户。'));
           return;
@@ -1385,17 +1491,20 @@
         state.npSourceAccountId = srcId;
         state.npCategoryId = catId;
 
+        const splitSuffixEn = isSplit ? ` (My Share RM ${personalAmt.toFixed(2)} • ${debtorName} owes RM ${(amt - personalAmt).toFixed(2)})` : '';
+        const splitSuffixZh = isSplit ? `（自付 RM ${personalAmt.toFixed(2)} • ${debtorName} 待还 RM ${(amt - personalAmt).toFixed(2)}）` : '';
+
         openTxConfirmationModal({
           origin: 'NUMPAD',
           type: 'EXPENSE',
-          typeBadgeEn: 'Expense',
-          typeBadgeZh: '支出 (Expense)',
+          typeBadgeEn: isSplit ? 'Split-Bill Expense (AA)' : 'Expense',
+          typeBadgeZh: isSplit ? 'AA 分账代垫支出' : '支出 (Expense)',
           amount: amt,
           fee: 0,
-          accountSummaryEn: srcAcc ? `${srcAcc.nameEn} (Current Balance: ${fmtRM(beforeBal)} → Balance After: ${fmtRM(afterBal)})` : '-',
-          accountSummaryZh: srcAcc ? `${srcAcc.nameZh} (当前余额: ${fmtRM(beforeBal)} → 交易后余额: ${fmtRM(afterBal)})` : '-',
-          categoryLabelEn: catObj ? `${catObj.nameEn} (${catObj.code})` : 'Food & Dining',
-          categoryLabelZh: catObj ? `${catObj.nameZh} (${catObj.code})` : '餐饮美食',
+          accountSummaryEn: srcAcc ? `${srcAcc.nameEn} (Current Balance: ${fmtRM(beforeBal)} → Balance After: ${fmtRM(afterBal)})${splitSuffixEn}` : '-',
+          accountSummaryZh: srcAcc ? `${srcAcc.nameZh} (当前余额: ${fmtRM(beforeBal)} → 交易后余额: ${fmtRM(afterBal)})${splitSuffixZh}` : '-',
+          categoryLabelEn: `${catObj ? catObj.nameEn : 'Food & Dining'}${taxCode ? ' • 🏛️ ' + taxCode : ''}`,
+          categoryLabelZh: `${catObj ? catObj.nameZh : '餐饮美食'}${taxCode ? ' • 🏛️ ' + taxCode : ''}`,
           dateStr: `${curToday}, ${nowTimeStr}`,
           noteStr: noteText || loc('General Expense', '日常支出'),
           commitFn: () => {
@@ -1404,6 +1513,10 @@
                 type: 'EXPENSE',
                 fromAccountId: srcId,
                 amount: amt,
+                personalAmount: personalAmt,
+                debtorName: debtorName,
+                envelopeId: envId || null,
+                taxCategoryCode: taxCode || null,
                 categoryId: catId || 'cat-food',
                 note: noteText,
                 date: curToday
@@ -1624,19 +1737,53 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-[11px] text-slate-400 block mb-1">${loc('Pay From Account:', '付款账户:')}</label>
-              <select id="np-sel-source" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
+              <select id="np-sel-source" onchange="refreshNumpadEnvelopeOptions()" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
                 ${spendAccounts.map(a => `<option value="${a.id}" ${a.id === state.npSourceAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('')}
               </select>
             </div>
             <div>
               <label class="text-[11px] text-slate-400 block mb-1">${loc('Expense Category:', '消费分类:')}</label>
               <select id="np-sel-cat" class="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-semibold text-xs">
-                ${state.categories.map(c => `<option value="${c.id}" ${c.id === state.npCategoryId ? 'selected' : ''}>${loc(c.nameEn, c.nameZh)}</option>`).join('')}
+                ${state.categories.map(c => `<option value="${c.id}" ${c.id === state.npCategoryId ? 'selected' : ''}>${c.icon || ''} ${loc(c.nameEn, c.nameZh)}</option>`).join('')}
               </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <label class="text-[11px] text-sky-300 block mb-1">${loc('Envelope (Optional):', '储蓄信封 (可选):')}</label>
+              <select id="np-sel-env" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-sky-300 font-semibold text-xs">
+                <option value="">${loc('-- None (Safe-to-Spend) --', '-- 不使用信封 --')}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-teal-300 block mb-1">${loc('LHDN Tax Relief:', 'LHDN 税务减免:')}</label>
+              <select id="np-sel-tax" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-teal-300 font-semibold text-xs">
+                <option value="">${loc('-- None --', '-- 无 --')}</option>
+                <option value="LHDN_LIFESTYLE">${loc('Lifestyle (RM 2.5k)', '生活方式 (2.5k)')}</option>
+                <option value="LHDN_SPORTS">${loc('Sports / Gym (RM 1k)', '体育健身 (1k)')}</option>
+                <option value="LHDN_MEDICAL">${loc('Medical (RM 10k)', '医疗体检 (10k)')}</option>
+              </select>
+            </div>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-2">
+            <label class="flex items-center justify-between cursor-pointer text-[11px] font-bold text-amber-300">
+              <span>🤝 ${loc('Split Bill / Friend Reimbursement (AA)', '朋友 AA 分账 / 代垫款项')}</span>
+              <input id="np-chk-split" type="checkbox" onchange="toggleNumpadSplitFields()" class="rounded accent-emerald-500" />
+            </label>
+            <div id="np-split-fields" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">${loc('My Personal Share (RM):', '我个人实际承担 (RM):')}</label>
+                <input id="np-inp-personal-amt" type="number" step="0.01" min="0" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs" />
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">${loc('Friend Name:', '朋友姓名:')}</label>
+                <input id="np-inp-debtor-name" type="text" placeholder="${loc('e.g. Ali / Sarah', '例如：小明 / Ali')}" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+              </div>
             </div>
           </div>
           ${commonDateAndNoteHtml}
         `;
+        refreshNumpadEnvelopeOptions();
       } else if (state.numpadMode === 'INCOME') {
         hintEl.textContent = loc('Credits income into selected bank / wallet account', '将收入存入所选银行或电子钱包账户');
         ctxEl.innerHTML = `
@@ -1861,12 +2008,50 @@
         }
       });
     }
+    function refreshNumpadEnvelopeOptions() {
+      const srcSel = document.getElementById('np-sel-source');
+      const envSel = document.getElementById('np-sel-env');
+      if (!srcSel || !envSel) return;
+      const acc = state.accounts.find(a => a.id === srcSel.value);
+      const envs = (acc && Array.isArray(acc.envelopes)) ? acc.envelopes : [];
+      envSel.innerHTML = `<option value="">${loc('-- None (Safe-to-Spend) --', '-- 不使用信封 --')}</option>` +
+        envs.map(e => `<option value="${e.id}">${loc(e.nameEn, e.nameZh)} (${fmtRM(e.allocated)})</option>`).join('');
+    }
+
+    function toggleNumpadSplitFields() {
+      const chk = document.getElementById('np-chk-split');
+      const fields = document.getElementById('np-split-fields');
+      const personalInp = document.getElementById('np-inp-personal-amt');
+      if (!chk || !fields) return;
+      fields.classList.toggle('hidden', !chk.checked);
+      if (chk.checked && personalInp && !personalInp.value) {
+        const total = parseFloat(state.numpadRaw) || 0;
+        personalInp.value = (total / 2).toFixed(2);
+      }
+    }
+
     function settleFriendReimbursement(id) {
       const item = state.reimbursements.find(r => r.id === id);
-      const bankA = state.accounts.find(a => a.pillar === 'ASSET_LIQUID');
       if (!item || item.settled) return;
-      item.settled = true;
-      if (bankA) bankA.currentBalance = Number((bankA.currentBalance + item.owedAmount).toFixed(2));
+      const selEl = document.getElementById('sel-reimb-target-' + id);
+      const targetAcc = selEl && selEl.value
+        ? state.accounts.find(a => a.id === selEl.value)
+        : state.accounts.find(a => a.pillar === 'ASSET_LIQUID');
+      if (!targetAcc) {
+        alert(loc('Please add a liquid bank/eWallet account first to receive the repayment.', '请先添加一个银行或电子钱包账户以接收朋友归还的款项。'));
+        return;
+      }
+      if (window.PfmEngine && window.PfmEngine.settleReimbursement) {
+        try {
+          window.PfmEngine.settleReimbursement(state, id, targetAcc.id, { today: todayStr() });
+        } catch (err) {
+          alert(err.message || 'Cannot settle reimbursement');
+          return;
+        }
+      } else {
+        item.settled = true;
+        targetAcc.currentBalance = Number((targetAcc.currentBalance + item.owedAmount).toFixed(2));
+      }
       saveToStorage();
       renderAll();
     }
@@ -2020,6 +2205,15 @@
       document.getElementById('app-subtitle').textContent = dict.appSubtitle;
       document.getElementById('lbl-alert-bell').textContent = dict.alertBell;
 
+      const privIcon = document.getElementById('icon-privacy-toggle');
+      const privBtn = document.getElementById('btn-privacy-toggle');
+      if (privIcon && privBtn) {
+        privIcon.textContent = state.privacyMode ? '🙈' : '👁️';
+        privBtn.className = state.privacyMode
+          ? 'tap-scale px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center gap-1'
+          : 'tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1';
+      }
+
       document.getElementById('dock-lbl-dashboard').textContent = dict.dock.dashboard;
       const dockHistEl = document.getElementById('dock-lbl-history');
       if (dockHistEl) dockHistEl.textContent = dict.dock.history;
@@ -2139,6 +2333,118 @@
         </div>
       `;
 
+      // Render Interactive Offline SVG Analytics Charts & Emergency Runway
+      if (window.PfmEngine && window.PfmEngine.computeAnalytics && document.getElementById('chart-category-donut-wrap')) {
+        const analytics = window.PfmEngine.computeAnalytics(state, todayStr());
+        const momEl = document.getElementById('badge-mom-delta');
+        const chartCatTitle = document.getElementById('lbl-chart-cat-title');
+        const chartRunwayTitle = document.getElementById('lbl-chart-runway-title');
+        if (chartCatTitle) chartCatTitle.textContent = loc('Category Spending Breakdown', '本月消费分类占比');
+        if (chartRunwayTitle) chartRunwayTitle.textContent = loc('Financial Health & 6M Cashflow', '财务健康与近 6 个月收支趋势');
+        if (momEl) {
+          const cmp = analytics.monthComparison;
+          if (cmp.previousMonthSpend > 0) {
+            const sign = cmp.deltaPercent > 0 ? '+' : '';
+            momEl.textContent = loc(`vs Last Mo: ${sign}${cmp.deltaPercent}%`, `较上月: ${sign}${cmp.deltaPercent}%`);
+            momEl.className = cmp.deltaPercent > 0
+              ? 'px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-bold'
+              : 'px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold';
+          } else {
+            momEl.textContent = loc(`This Month: ${fmtRM(cmp.currentMonthSpend)}`, `本月支出: ${fmtRM(cmp.currentMonthSpend)}`);
+            momEl.className = 'px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold';
+          }
+        }
+
+        const donutWrap = document.getElementById('chart-category-donut-wrap');
+        const bd = analytics.categoryBreakdown || [];
+        if (!bd.length) {
+          donutWrap.innerHTML = `
+            <svg width="110" height="110" viewBox="0 0 110 110" class="shrink-0">
+              <circle cx="55" cy="55" r="40" fill="none" stroke="#1e293b" stroke-width="14"></circle>
+              <text x="55" y="59" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="bold">RM 0</text>
+            </svg>
+            <p class="text-xs text-slate-500">${loc('Record your first expense or installment to visualize your spending distribution.', '记录支出或分期消费后，系统将自动生成实时分类环形图。')}</p>
+          `;
+        } else {
+          const r = 40;
+          const circ = 2 * Math.PI * r;
+          let offsetAcc = 0;
+          const segments = bd.map(item => {
+            const len = (item.percent / 100) * circ;
+            const seg = `<circle cx="55" cy="55" r="${r}" fill="none" stroke="${item.color}" stroke-width="14" stroke-dasharray="${len.toFixed(2)} ${(circ - len).toFixed(2)}" stroke-dashoffset="${(-offsetAcc).toFixed(2)}" transform="rotate(-90 55 55)"></circle>`;
+            offsetAcc += len;
+            return seg;
+          }).join('');
+          const legend = bd.slice(0, 5).map(item => `
+            <div class="flex items-center justify-between gap-2 text-[11px]">
+              <span class="flex items-center gap-1.5 truncate">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${item.color}"></span>
+                <span class="text-slate-200 font-semibold truncate">${item.icon} ${loc(item.nameEn, item.nameZh)}</span>
+              </span>
+              <span class="text-white font-bold shrink-0">${fmtRM(item.amount)} <span class="text-slate-400">(${item.percent}%)</span></span>
+            </div>
+          `).join('');
+          donutWrap.innerHTML = `
+            <svg width="110" height="110" viewBox="0 0 110 110" class="shrink-0">
+              <circle cx="55" cy="55" r="${r}" fill="none" stroke="#1e293b" stroke-width="14"></circle>
+              ${segments}
+              <text x="55" y="52" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">${loc('TOTAL', '总支出')}</text>
+              <text x="55" y="65" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="bold">${state.privacyMode ? '••••' : Math.round(totalMonthlyPersonalSpend)}</text>
+            </svg>
+            <div class="flex-1 w-full space-y-1.5">${legend}</div>
+          `;
+        }
+
+        const runwayBadge = document.getElementById('badge-runway-grade');
+        const runwayWrap = document.getElementById('chart-cashflow-bars-wrap');
+        if (runwayBadge) {
+          const gradeMap = {
+            STRONG: { en: `${analytics.emergencyRunwayMonths}m Runway • Strong`, zh: `${analytics.emergencyRunwayMonths} 个月储备 • 稳健`, cls: 'bg-emerald-500/20 text-emerald-300' },
+            MODERATE: { en: `${analytics.emergencyRunwayMonths}m Runway • Fair`, zh: `${analytics.emergencyRunwayMonths} 个月储备 • 良好`, cls: 'bg-sky-500/20 text-sky-300' },
+            BUILDING: { en: `${analytics.emergencyRunwayMonths}m Runway • Build`, zh: `${analytics.emergencyRunwayMonths} 个月储备 • 需积累`, cls: 'bg-amber-500/20 text-amber-300' },
+            NO_DATA: { en: 'Runway Ready', zh: '备用金评估就绪', cls: 'bg-slate-800 text-slate-300' }
+          };
+          const gm = gradeMap[analytics.runwayGrade] || gradeMap.NO_DATA;
+          runwayBadge.textContent = loc(gm.en, gm.zh);
+          runwayBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold ' + gm.cls;
+        }
+        if (runwayWrap) {
+          const maxBarVal = Math.max(100, ...analytics.sixMonthCashflow.map(m => Math.max(m.income, m.expense)));
+          const barsHtml = analytics.sixMonthCashflow.map(m => {
+            const incH = Math.max(4, Math.round((m.income / maxBarVal) * 48));
+            const expH = Math.max(4, Math.round((m.expense / maxBarVal) * 48));
+            return `
+              <div class="flex-1 flex flex-col items-center gap-1">
+                <div class="h-14 flex items-end gap-1">
+                  <div class="w-2.5 rounded-t bg-emerald-400" style="height:${incH}px" title="In: ${fmtRM(m.income)}"></div>
+                  <div class="w-2.5 rounded-t bg-rose-400" style="height:${expH}px" title="Out: ${fmtRM(m.expense)}"></div>
+                </div>
+                <span class="text-[9px] text-slate-400 font-mono">${m.ym.slice(5)}</span>
+              </div>
+            `;
+          }).join('');
+          runwayWrap.innerHTML = `
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-2">
+                <span class="text-slate-400 block">${loc('Liquid Emergency Runway', '流动紧急备用金月数')}</span>
+                <strong class="text-emerald-400 text-xs">${analytics.liquidRunwayMonths} ${loc('months', '个月')}</strong>
+              </div>
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-2">
+                <span class="text-slate-400 block">${loc('Avg Monthly Spend', '月均实际支出')}</span>
+                <strong class="text-white text-xs">${fmtRM(analytics.avgMonthlySpend)}</strong>
+              </div>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-2.5">
+              <div class="flex items-end justify-between gap-2">${barsHtml}</div>
+              <div class="flex items-center justify-end gap-3 text-[9px] text-slate-400 pt-1">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-emerald-400"></span>${loc('Income', '收入')}</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-rose-400"></span>${loc('Spend', '支出')}</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
       document.getElementById('pillars-section-title').textContent = dict.pillarsSectionTitle;
       document.getElementById('pillars-edit-hint').textContent = dict.pillarsEditHint;
       document.getElementById('btn-add-custom-acc').textContent = dict.addCustomAcc;
@@ -2202,17 +2508,25 @@
 
       // Pending Reimbursements & LHDN Tax Relief on Dashboard
       document.getElementById('reimbursements-title').textContent = dict.reimbursementsTitle;
-      document.getElementById('reimbursements-list').innerHTML = state.reimbursements.map(r => `
-        <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2">
-          <div>
-            <p class="text-xs font-bold text-white">${r.debtorName} — ${fmtRM(r.owedAmount)}</p>
-            <p class="text-[11px] text-slate-400">${loc(r.descEn, r.descZh)}</p>
+      const reimbContainer = document.getElementById('reimbursements-list');
+      if (!state.reimbursements || !state.reimbursements.length) {
+        reimbContainer.innerHTML = `<p class="text-xs text-slate-500 italic py-2">${loc('No pending split bills. Enable "🤝 Split Bill (AA)" in the + Quick Entry numpad to track friend repayments.', '暂无待收回 AA 分账。点击底部 + 记账并开启「朋友 AA 分账」即可追踪朋友代垫款项。')}</p>`;
+      } else {
+        reimbContainer.innerHTML = state.reimbursements.map(r => `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-xs font-bold text-white">${r.debtorName} — ${fmtRM(r.owedAmount)}</p>
+              <p class="text-[11px] text-slate-400">${loc(r.descEn, r.descZh)}</p>
+            </div>
+            ${r.settled
+              ? `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">${loc('SETTLED', '已收回')}</span>`
+              : `<div class="flex items-center gap-1.5 shrink-0">
+                  ${liquidAccs.length > 1 ? `<select id="sel-reimb-target-${r.id}" class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold max-w-[110px]">${liquidAccs.map(a => `<option value="${a.id}">${loc(a.nameEn, a.nameZh)}</option>`).join('')}</select>` : ''}
+                  <button onclick="settleFriendReimbursement('${r.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shrink-0">${loc('Settle', '收回')} (+${fmtRM(r.owedAmount)})</button>
+                </div>`}
           </div>
-          ${r.settled
-            ? `<span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-bold">${loc('SETTLED', '已收回')}</span>`
-            : `<button onclick="settleFriendReimbursement('${r.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shrink-0">${loc('Settle (+RM 60)', '收回 (+RM 60)')}</button>`}
-        </div>
-      `).join('');
+        `).join('');
+      }
 
       document.getElementById('tax-view-title').textContent = dict.taxTitle;
       document.getElementById('tax-buckets-container').innerHTML = state.taxBuckets.map(b => {
@@ -2230,22 +2544,30 @@
         `;
       }).join('');
 
-      // TAB 2: Category Roll-Up Summaries
+      // TAB 2: Category Roll-Up Summaries & Budget CRUD
       document.getElementById('cat-rollup-title').textContent = dict.catTitle;
       document.getElementById('cat-rollup-subtitle').textContent = dict.catSubtitle;
+      const nowLocal = new Date();
+      const totalDaysCurMonth = new Date(nowLocal.getFullYear(), nowLocal.getMonth() + 1, 0).getDate();
+      const daysLeftInMonth = Math.max(1, totalDaysCurMonth - nowLocal.getDate() + 1);
       document.getElementById('category-rollup-container').innerHTML = state.categories.map(c => {
         const totalCommitted = Number(((c.directSpent || 0) + (c.installmentSlice || 0)).toFixed(2));
         const rem = Math.max(0, Number(((c.budget || 0) - totalCommitted).toFixed(2)));
         const pct = c.budget > 0 ? Math.min(100, Math.round((totalCommitted / c.budget) * 100)) : 0;
-        const dailyCap = (rem / 12).toFixed(2);
+        const dailyCap = (rem / daysLeftInMonth).toFixed(2);
         return `
           <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
-            <div class="flex items-center justify-between">
-              <div>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">${c.code}</span>
-                <h4 class="text-sm font-bold text-white mt-1">${loc(c.nameEn, c.nameZh)}</h4>
+            <div class="flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">${c.code}</span>
+                  <button onclick="openCategoryModal('${c.id}')" class="px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 text-[10px] font-bold">
+                    ✎ ${loc('Edit Budget', '编辑预算')}
+                  </button>
+                </div>
+                <h4 class="text-sm font-bold text-white mt-1 truncate">${c.icon || '📌'} ${loc(c.nameEn, c.nameZh)}</h4>
               </div>
-              <div class="text-right">
+              <div class="text-right shrink-0">
                 <p class="text-sm font-black text-white">${fmtRM(totalCommitted)} / ${fmtRM(c.budget)}</p>
                 <p class="text-[11px] ${pct >= 80 ? 'text-amber-400' : 'text-emerald-400'}">${pct}% ${loc('used', '已用')}</p>
               </div>
@@ -2255,13 +2577,45 @@
             </div>
             <div class="flex justify-between text-[11px] text-slate-400 pt-1">
               <span>${loc('Direct:', '直接:')} ${fmtRM(c.directSpent)} • ${loc('Installment:', '分期:')} ${fmtRM(c.installmentSlice)}</span>
-              <span class="text-sky-300 font-semibold">${loc('Cap:', '每日上限:')} RM ${dailyCap}/d</span>
+              <span class="text-sky-300 font-semibold">${loc(`Cap (${daysLeftInMonth}d):`, `每日上限 (剩${daysLeftInMonth}天):`)} RM ${dailyCap}/d</span>
             </div>
           </div>
         `;
       }).join('');
 
-      // TAB 3: 30-Day Cashflow Projection Calendar (Dynamic from user's real accounts & schedules)
+      // TAB 3A: Recurring Bills / Subscriptions Manager
+      const recContainer = document.getElementById('recurring-bills-container');
+      if (recContainer) {
+        const bills = state.recurringBills || [];
+        if (!bills.length) {
+          recContainer.innerHTML = `<p class="text-xs text-slate-500 italic col-span-full py-2">${loc('No recurring bills yet. Add Unifi, Insurance, Netflix, or Gym to project cashflow and post in 1 tap.', '暂无周期账单。点击「+ Add Recurring Bill」添加宽带、保险、Netflix 或房租即可一键记账并加入 30 天预测。')}</p>`;
+        } else {
+          recContainer.innerHTML = bills.map(b => {
+            const postedThisMonth = b.lastPostedYm === curYm;
+            const acc = state.accounts.find(a => a.id === (b.fromAccountId || b.toAccountId));
+            return `
+              <div class="bg-slate-950 border ${postedThisMonth ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl p-3 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-indigo-300">${loc('Day', '每月')} ${b.dayOfMonth}</span>
+                    <p class="text-xs font-extrabold text-white truncate">${loc(b.nameEn, b.nameZh)}</p>
+                  </div>
+                  <p class="text-[11px] text-slate-400 mt-0.5 truncate">${acc ? loc(acc.nameEn, acc.nameZh) : ''} • <strong class="${b.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}">${fmtRM(b.amount)}</strong></p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  ${postedThisMonth
+                    ? `<span class="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">✓ ${loc('Posted', '本月已记')}</span>`
+                    : `<button onclick="postRecurringBillUI('${b.id}')" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black">${loc('Post Now', '立即入账')}</button>`}
+                  <button onclick="openRecurringBillModal('${b.id}')" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-300 text-[10px] font-bold">✎</button>
+                  <button onclick="deleteRecurringBillUI('${b.id}')" class="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-[10px] font-bold">🗑</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // TAB 3B: 30-Day Cashflow Projection Calendar (Dynamic from user's real accounts, recurring bills & schedules)
       document.getElementById('cal-view-title').textContent = dict.calTitle;
       document.getElementById('cal-view-subtitle').textContent = dict.calSubtitle;
       let runningBal = totalLiquid;
@@ -2285,6 +2639,21 @@
               badgeStyle = 'border-rose-500/50 bg-rose-950/20';
             }
           });
+        });
+
+        // 1b. User's active Recurring Bills / Subscriptions due on this day of month
+        (state.recurringBills || []).forEach(b => {
+          if (b.active !== false && Number(b.dayOfMonth) === dayNum && b.lastPostedYm !== fullIsoDate.slice(0, 7)) {
+            if (b.type === 'INCOME') {
+              delta += Number(b.amount) || 0;
+              eventLabels.push(`${loc(b.nameEn, b.nameZh)} +${fmtRM(b.amount)}`);
+              badgeStyle = 'border-emerald-500/50 bg-emerald-950/20';
+            } else if (b.type === 'EXPENSE') {
+              delta -= Number(b.amount) || 0;
+              eventLabels.push(`${loc(b.nameEn, b.nameZh)} -${fmtRM(b.amount)}`);
+              badgeStyle = 'border-rose-500/50 bg-rose-950/20';
+            }
+          }
         });
 
         // 2. User's real Installment Schedule slices due on this exact date
@@ -3361,7 +3730,7 @@
           const fromAcc = state.accounts.find(a => a.id === tx.fromAccountId);
           const toAcc = state.accounts.find(a => a.id === tx.toAccountId);
           const cat = state.categories.find(c => c.id === tx.categoryId);
-          const icon = tx.type === 'TRANSFER' ? '⇄' : (tx.type === 'INCOME' || tx.type === 'INTEREST' ? '💰' : (catIconMap[tx.categoryId] || '💳'));
+          const icon = tx.type === 'TRANSFER' ? '⇄' : (tx.type === 'INCOME' || tx.type === 'INTEREST' ? '💰' : ((cat && cat.icon) || catIconMap[tx.categoryId] || '💳'));
           const timePart = tx.createdAt && tx.createdAt.includes('T')
             ? new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '';
@@ -3424,10 +3793,12 @@
       const fromWrap = document.getElementById('wrap-inspect-from-acc');
       const toWrap = document.getElementById('wrap-inspect-to-acc');
       const catWrap = document.getElementById('wrap-inspect-cat');
+      const taxWrap = document.getElementById('wrap-inspect-tax');
       const feeWrap = document.getElementById('wrap-inspect-fee');
       if (fromWrap) fromWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PAYMENT'));
       if (toWrap) toWrap.classList.toggle('hidden', !(typeVal === 'INCOME' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PURCHASE' || typeVal === 'INSTALLMENT_PAYMENT'));
       if (catWrap) catWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'INSTALLMENT_PURCHASE'));
+      if (taxWrap) taxWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'INSTALLMENT_PURCHASE'));
       if (feeWrap) feeWrap.classList.toggle('hidden', typeVal !== 'TRANSFER');
     }
 
@@ -3454,10 +3825,14 @@
       const fromSel = document.getElementById('inp-inspect-from-acc');
       const toSel = document.getElementById('inp-inspect-to-acc');
       const catSel = document.getElementById('inp-inspect-cat');
+      const taxSel = document.getElementById('inp-inspect-tax');
+      const learnChk = document.getElementById('chk-inspect-learn-rule');
 
       fromSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === tx.fromAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
       toSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === tx.toAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
-      catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${c.id === tx.categoryId ? 'selected' : ''}>${loc(c.nameEn, c.nameZh)}</option>`).join('');
+      catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${c.id === tx.categoryId ? 'selected' : ''}>${c.icon || ''} ${loc(c.nameEn, c.nameZh)}</option>`).join('');
+      if (taxSel) taxSel.value = tx.taxCategoryCode || '';
+      if (learnChk) learnChk.checked = tx.source === 'NOTIFICATION';
 
       updateInspectModalFieldVisibility(tx.type);
       document.getElementById('tx-inspect-modal').classList.remove('hidden');
@@ -3480,6 +3855,8 @@
       const newFrom = document.getElementById('inp-inspect-from-acc').value;
       const newTo = document.getElementById('inp-inspect-to-acc').value;
       const newCat = document.getElementById('inp-inspect-cat').value;
+      const newTax = document.getElementById('inp-inspect-tax')?.value || null;
+      const learnRule = !!document.getElementById('chk-inspect-learn-rule')?.checked;
       const typeSel = document.getElementById('inp-inspect-type');
       const isStandardSwitchable = tx.type === 'EXPENSE' || tx.type === 'INCOME' || tx.type === 'TRANSFER';
       const targetType = (isStandardSwitchable && typeSel && typeSel.value) ? typeSel.value : tx.type;
@@ -3495,6 +3872,8 @@
           if (targetType === 'EXPENSE') {
             patch.fromAccountId = newFrom;
             patch.categoryId = newCat;
+            patch.taxCategoryCode = newTax;
+            patch.learnRule = learnRule;
             delete patch.descEn;
             delete patch.descZh;
           } else if (targetType === 'INCOME') {
@@ -3517,6 +3896,7 @@
             patch.liabilityAccountId = newTo;
             patch.totalPrincipal = newAmt;
             patch.categoryId = newCat;
+            patch.taxCategoryCode = newTax;
             if (newNote) patch.itemName = newNote;
             delete patch.descEn;
             delete patch.descZh;
@@ -3525,6 +3905,8 @@
         } else {
           tx.date = newDate;
           tx.note = newNote;
+          tx.taxCategoryCode = newTax;
+          if (window.PfmEngine.recomputeTaxBuckets) window.PfmEngine.recomputeTaxBuckets(state, todayStr().slice(0, 4));
         }
         saveToStorage();
         closeInspectTransactionModal();
@@ -3604,6 +3986,33 @@
             </div>
           `;
         }).join('');
+      }
+
+      const rulesContainer = document.getElementById('notif-merchant-rules-list');
+      if (rulesContainer) {
+        const rules = (state.notificationState && state.notificationState.merchantRules) || {};
+        const keys = Object.keys(rules);
+        if (!keys.length) {
+          rulesContainer.innerHTML = `<span class="text-[11px] text-slate-400">${loc('Built-in Malaysian dictionary active (99 Speedmart, Zus, Petronas, TNB, Shopee, etc.). Edit any auto-detected transaction category to teach custom merchant rules.', '已内置大马常用商户识别库（99 Speedmart、Zus、Petronas、TNB、Shopee等）。修改自动记账分类即可学习专属商户规则。')}</span>`;
+        } else {
+          rulesContainer.innerHTML = keys.map(k => {
+            const cat = state.categories.find(c => c.id === rules[k]);
+            return `
+              <span class="px-2.5 py-1 rounded-lg bg-slate-900 border border-emerald-500/30 text-[11px] text-slate-200 flex items-center gap-1.5">
+                <strong>"${k}"</strong> → <span class="text-emerald-300">${cat ? (cat.icon || '') + ' ' + loc(cat.nameEn, cat.nameZh) : rules[k]}</span>
+                <button onclick="deleteMerchantRule('${k.replace(/'/g, "\\'")}')" class="text-rose-400 font-bold ml-1">✕</button>
+              </span>
+            `;
+          }).join('');
+        }
+      }
+    }
+
+    function deleteMerchantRule(key) {
+      if (state.notificationState && state.notificationState.merchantRules) {
+        delete state.notificationState.merchantRules[key];
+        saveToStorage();
+        renderAll();
       }
     }
 
@@ -3754,6 +4163,207 @@
     setTimeout(flushNativeNotifications, 400);
 
     // =========================================================================
+    // UPGRADE 3 & 5 CONTROLLERS: CATEGORY CRUD, RECURRING BILLS & SALARY + EPF
+    // =========================================================================
+    let editingCategoryId = null;
+    let editingRecurringBillId = null;
+
+    function openCategoryModal(catId) {
+      editingCategoryId = catId || null;
+      const cat = catId ? state.categories.find(c => c.id === catId) : null;
+      document.getElementById('cat-modal-title').textContent = cat
+        ? loc('Edit Category & Monthly Budget', '修改分类与月度预算')
+        : loc('Add New Custom Category', '新增自定义消费分类');
+      document.getElementById('inp-cat-icon').value = cat ? (cat.icon || '📌') : '📌';
+      document.getElementById('inp-cat-budget').value = cat ? Number(cat.budget || 0).toFixed(2) : '0.00';
+      document.getElementById('inp-cat-name-en').value = cat ? (cat.nameEn || '') : '';
+      document.getElementById('inp-cat-name-zh').value = cat ? (cat.nameZh || '') : '';
+      const delBtn = document.getElementById('btn-delete-cat');
+      if (delBtn) delBtn.classList.toggle('hidden', !cat || cat.id === 'cat-other' || cat.id === 'cat-fees');
+      document.getElementById('category-edit-modal').classList.remove('hidden');
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('category-edit-modal').classList.add('hidden');
+      editingCategoryId = null;
+    }
+
+    function saveCategoryModal() {
+      if (!window.PfmEngine) return;
+      const icon = document.getElementById('inp-cat-icon').value.trim() || '📌';
+      const budget = parseFloat(document.getElementById('inp-cat-budget').value) || 0;
+      const nameEn = document.getElementById('inp-cat-name-en').value.trim();
+      const nameZh = document.getElementById('inp-cat-name-zh').value.trim();
+      try {
+        window.PfmEngine.upsertCategory(state, { id: editingCategoryId, icon, budget, nameEn, nameZh });
+        saveToStorage();
+        closeCategoryModal();
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Invalid category inputs');
+      }
+    }
+
+    function deleteCategoryModal() {
+      if (!editingCategoryId || !window.PfmEngine) return;
+      if (!confirm(loc('Delete this category? Linked transactions will move to Other.', '确认删除此分类？相关交易流水将移至“其他/未分类”。'))) return;
+      try {
+        window.PfmEngine.deleteCategory(state, editingCategoryId);
+        saveToStorage();
+        closeCategoryModal();
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Cannot delete built-in category');
+      }
+    }
+
+    function openRecurringBillModal(billId) {
+      editingRecurringBillId = billId || null;
+      const bill = billId ? (state.recurringBills || []).find(b => b.id === billId) : null;
+      const eligibleAccs = state.accounts.filter(a => a.pillar === 'ASSET_LIQUID' || a.pillar === 'LIABILITY');
+      if (!eligibleAccs.length) {
+        alert(loc('Please add a Bank / eWallet / Liability account first.', '请先添加至少一个银行、电子钱包或负债账户。'));
+        return;
+      }
+      document.getElementById('rec-modal-title').textContent = bill
+        ? loc('Edit Recurring Bill / Subscription', '编辑周期账单 / 订阅')
+        : loc('Add Recurring Bill / Subscription', '新增周期账单 / 订阅');
+      document.getElementById('inp-rec-name-en').value = bill ? (bill.nameEn || '') : '';
+      document.getElementById('inp-rec-name-zh').value = bill ? (bill.nameZh || '') : '';
+      document.getElementById('inp-rec-amount').value = bill ? Number(bill.amount || 0).toFixed(2) : '50.00';
+      document.getElementById('inp-rec-day').value = bill ? Number(bill.dayOfMonth || 15) : 15;
+      document.getElementById('inp-rec-type').value = bill ? (bill.type || 'EXPENSE') : 'EXPENSE';
+
+      const accSel = document.getElementById('inp-rec-account');
+      accSel.innerHTML = eligibleAccs.map(a => `<option value="${a.id}" ${bill && (bill.fromAccountId === a.id || bill.toAccountId === a.id) ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
+      const catSel = document.getElementById('inp-rec-category');
+      catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${bill && bill.categoryId === c.id ? 'selected' : ''}>${c.icon || ''} ${loc(c.nameEn, c.nameZh)}</option>`).join('');
+      document.getElementById('recurring-bill-modal').classList.remove('hidden');
+    }
+
+    function closeRecurringBillModal() {
+      document.getElementById('recurring-bill-modal').classList.add('hidden');
+      editingRecurringBillId = null;
+    }
+
+    function saveRecurringBillModal() {
+      if (!window.PfmEngine) return;
+      const nameEn = document.getElementById('inp-rec-name-en').value.trim();
+      const nameZh = document.getElementById('inp-rec-name-zh').value.trim();
+      const amount = parseFloat(document.getElementById('inp-rec-amount').value);
+      const dayOfMonth = parseInt(document.getElementById('inp-rec-day').value, 10) || 1;
+      const type = document.getElementById('inp-rec-type').value || 'EXPENSE';
+      const accId = document.getElementById('inp-rec-account').value;
+      const categoryId = document.getElementById('inp-rec-category').value;
+      try {
+        window.PfmEngine.upsertRecurringBill(state, {
+          id: editingRecurringBillId,
+          nameEn,
+          nameZh,
+          type,
+          amount,
+          dayOfMonth,
+          fromAccountId: type === 'INCOME' ? null : accId,
+          toAccountId: type === 'INCOME' ? accId : null,
+          categoryId
+        });
+        saveToStorage();
+        closeRecurringBillModal();
+        renderAll();
+      } catch (err) {
+        alert(err.message || 'Error saving recurring bill');
+      }
+    }
+
+    function postRecurringBillUI(billId) {
+      if (!window.PfmEngine) return;
+      const bill = (state.recurringBills || []).find(b => b.id === billId);
+      if (!bill) return;
+      const acc = state.accounts.find(a => a.id === (bill.fromAccountId || bill.toAccountId));
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      openTxConfirmationModal({
+        origin: 'RECURRING',
+        type: bill.type,
+        typeBadgeEn: `Recurring (${bill.type})`,
+        typeBadgeZh: `周期账单 (${bill.type})`,
+        amount: bill.amount,
+        fee: 0,
+        accountSummaryEn: acc ? `${acc.nameEn} (${fmtRM(acc.currentBalance)})` : '-',
+        accountSummaryZh: acc ? `${acc.nameZh} (${fmtRM(acc.currentBalance)})` : '-',
+        categoryLabelEn: bill.nameEn,
+        categoryLabelZh: bill.nameZh,
+        dateStr: `${todayStr()}, ${nowTimeStr}`,
+        noteStr: `${loc(bill.nameEn, bill.nameZh)} (Day ${bill.dayOfMonth})`,
+        commitFn: () => {
+          window.PfmEngine.postRecurringBill(state, bill.id, { today: todayStr(), date: todayStr() });
+        }
+      });
+    }
+
+    function deleteRecurringBillUI(billId) {
+      if (!window.PfmEngine) return;
+      if (!confirm(loc('Delete this recurring bill?', '确认删除此周期账单？'))) return;
+      window.PfmEngine.deleteRecurringBill(state, billId);
+      saveToStorage();
+      renderAll();
+    }
+
+    function openSalaryCreditModal() {
+      const liquidAccs = state.accounts.filter(a => a.pillar === 'ASSET_LIQUID');
+      if (!liquidAccs.length) {
+        alert(loc('Please add a Liquid Bank Account first.', '请先添加一个用于接收薪资的银行账户。'));
+        return;
+      }
+      const incAcc = state.accounts.find(a => a.pillar === 'INCOME_SOURCE');
+      const netVal = incAcc ? incAcc.currentBalance : (state.netMonthlyIncome || 5000);
+      document.getElementById('inp-sal-net').value = Number(netVal || 0).toFixed(2);
+      document.getElementById('inp-sal-gross').value = '';
+      document.getElementById('inp-sal-date').value = todayStr();
+      document.getElementById('inp-sal-bank').innerHTML = liquidAccs.map(a => `<option value="${a.id}">${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
+      const investAccs = state.accounts.filter(a => a.pillar === 'ASSET_INVESTMENT');
+      const epfDefault = investAccs.find(a => a.catalogCode === 'EPF' || /epf|kwsp/i.test(a.nameEn || ''));
+      document.getElementById('inp-sal-epf-acc').innerHTML = `<option value="">${loc('-- Skip EPF Auto-Credit --', '-- 暂不自动记入公积金账户 --')}</option>` +
+        investAccs.map(a => `<option value="${a.id}" ${epfDefault && a.id === epfDefault.id ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
+      document.getElementById('salary-credit-modal').classList.remove('hidden');
+    }
+
+    function closeSalaryCreditModal() {
+      document.getElementById('salary-credit-modal').classList.add('hidden');
+    }
+
+    function submitSalaryCreditModal() {
+      if (!window.PfmEngine) return;
+      const netSalary = parseFloat(document.getElementById('inp-sal-net').value);
+      const grossRaw = document.getElementById('inp-sal-gross').value;
+      const toAccountId = document.getElementById('inp-sal-bank').value;
+      const epfAccountId = document.getElementById('inp-sal-epf-acc').value || null;
+      const employeeEpfRate = parseFloat(document.getElementById('inp-sal-emp-epf').value) || 0;
+      const employerEpfRate = parseFloat(document.getElementById('inp-sal-empr-epf').value) || 0;
+      const date = document.getElementById('inp-sal-date').value || todayStr();
+
+      try {
+        const res = window.PfmEngine.creditSalaryWithEpf(state, {
+          netSalary,
+          grossSalary: grossRaw,
+          toAccountId,
+          epfAccountId,
+          employeeEpfRate,
+          employerEpfRate,
+          date
+        }, { today: todayStr() });
+        saveToStorage();
+        closeSalaryCreditModal();
+        renderAll();
+        alert(loc(
+          `Salary RM ${netSalary.toFixed(2)} credited!${res.epfContribution > 0 ? ` EPF +RM ${res.epfContribution.toFixed(2)} added to KWSP.` : ''}`,
+          `薪资 RM ${netSalary.toFixed(2)} 已入账！${res.epfContribution > 0 ? `EPF 公积金 +RM ${res.epfContribution.toFixed(2)} 已同步入账。` : ''}`
+        ));
+      } catch (err) {
+        alert(err.message || 'Error crediting salary');
+      }
+    }
+
+    // =========================================================================
     // SETTINGS DATA LIFECYCLE (LOAD DEMO DATA & CLEAR ALL DATA)
     // =========================================================================
     function loadDemoDataInSettings() {
@@ -3774,8 +4384,10 @@
           state.accounts = [];
           state.transactions = [];
           state.installmentPlans = [];
+          state.recurringBills = [];
           state.asnbSnapshots = [];
           state.reimbursements = [];
+          (state.taxBuckets || []).forEach(b => { b.claimed = 0; b.manualBaseClaimed = 0; });
           state.systemInitialized = true;
           if (window.PfmLocalDb) {
             window.PfmLocalDb.clearAllData().catch(() => {});
@@ -4211,6 +4823,20 @@
         <div id="wrap-inspect-cat">
           <label class="block text-slate-400 mb-1 font-semibold">Category (消费分类)</label>
           <select id="inp-inspect-cat" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs"></select>
+          <label class="flex items-center gap-2 mt-1.5 cursor-pointer text-[11px] text-teal-300 font-semibold">
+            <input id="chk-inspect-learn-rule" type="checkbox" class="rounded accent-emerald-500" />
+            <span>🤖 Auto-learn this Merchant → Category rule for future notifications</span>
+          </label>
+        </div>
+
+        <div id="wrap-inspect-tax">
+          <label class="block text-slate-400 mb-1 font-semibold">LHDN Tax Relief Tag (马来西亚税务减免标签)</label>
+          <select id="inp-inspect-tax" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-teal-300 font-bold text-xs">
+            <option value="">-- None (非税务减免) --</option>
+            <option value="LHDN_LIFESTYLE">Lifestyle (Books / Tech / Internet • Max RM 2,500)</option>
+            <option value="LHDN_SPORTS">Sports & Gym (体育器材/健身 • Max RM 1,000)</option>
+            <option value="LHDN_MEDICAL">Medical & Check-Up (医疗与体检 • Max RM 10,000)</option>
+          </select>
         </div>
 
         <div id="wrap-inspect-fee" class="hidden">
@@ -4228,6 +4854,144 @@
         <button onclick="deleteInspectTransaction()" class="px-3.5 py-3 rounded-2xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs">Delete & Reverse (删除并回滚)</button>
         <button onclick="saveInspectTransactionEdit()" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg">Save Changes (保存修改)</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT CUSTOM CATEGORY & MONTHLY BUDGET (UPGRADE 3)            -->
+  <!-- ========================================================================= -->
+  <div id="category-edit-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 id="cat-modal-title" class="text-base font-extrabold text-white">Edit Category & Monthly Budget</h3>
+        <button onclick="closeCategoryModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Icon</label>
+            <input id="inp-cat-icon" type="text" value="📌" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-center text-base" />
+          </div>
+          <div class="col-span-3">
+            <label class="block text-emerald-300 font-bold mb-1">Monthly Budget Limit (月度预算 RM)</label>
+            <input id="inp-cat-budget" type="number" step="0.01" min="0" value="0.00" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-emerald-400 font-black text-base" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Category Name (English)</label>
+          <input id="inp-cat-name-en" type="text" placeholder="e.g. Pets & Family" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Category Name (中文名称)</label>
+          <input id="inp-cat-name-zh" type="text" placeholder="例如：宠物与家庭孝亲" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="deleteCategoryModal()" id="btn-delete-cat" class="px-3.5 py-3 rounded-2xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs">Delete</button>
+        <button onclick="saveCategoryModal()" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg">Save Category (保存分类与预算)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ADD / EDIT RECURRING BILL & SUBSCRIPTION (UPGRADE 5A)              -->
+  <!-- ========================================================================= -->
+  <div id="recurring-bill-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 id="rec-modal-title" class="text-base font-extrabold text-white">Add Recurring Bill / Subscription</h3>
+        <button onclick="closeRecurringBillModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Bill / Subscription Name (EN)</label>
+            <input id="inp-rec-name-en" type="text" placeholder="e.g. Unifi / Netflix / Gym" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Name (中文)</label>
+            <input id="inp-rec-name-zh" type="text" placeholder="例如：Unifi 光纤 / Netflix" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-emerald-300 font-bold mb-1">Amount (RM)</label>
+            <input id="inp-rec-amount" type="number" step="0.01" value="50.00" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/40 text-emerald-400 font-black text-sm" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Due Day (1-31)</label>
+            <input id="inp-rec-day" type="number" min="1" max="31" value="15" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Type</label>
+            <select id="inp-rec-type" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs">
+              <option value="EXPENSE">Expense (支出)</option>
+              <option value="INCOME">Income (收入)</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Account (付款 / 收款账户)</label>
+          <select id="inp-rec-account" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs"></select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Category (消费分类)</label>
+          <select id="inp-rec-category" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs"></select>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="saveRecurringBillModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-sm shadow-lg">Save Recurring Bill (保存周期账单)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: CREDIT MONTHLY SALARY + AUTO EPF (KWSP) SPLITTER (UPGRADE 5B)      -->
+  <!-- ========================================================================= -->
+  <div id="salary-credit-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-700 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div>
+          <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Malaysian Payroll + KWSP</span>
+          <h3 class="text-base font-extrabold text-white mt-1">Credit Salary & EPF Contribution (发薪与公积金入账)</h3>
+        </div>
+        <button onclick="closeSalaryCreditModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-emerald-300 font-bold mb-1">Net Salary Received (实发薪资 RM)</label>
+            <input id="inp-sal-net" type="number" step="0.01" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-emerald-500/50 text-emerald-400 font-black text-base" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Gross Salary Base (税前薪资 RM)</label>
+            <input id="inp-sal-gross" type="number" step="0.01" placeholder="Optional for EPF" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Deposit Net Salary Into (银行入账账户)</label>
+          <select id="inp-sal-bank" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-bold text-xs"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Employee EPF % (员工)</label>
+            <input id="inp-sal-emp-epf" type="number" step="0.5" value="11" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-semibold">Employer EPF % (雇主)</label>
+            <input id="inp-sal-empr-epf" type="number" step="0.5" value="12" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Auto-Credit EPF Contribution To (可选 EPF/KWSP 账户)</label>
+          <select id="inp-sal-epf-acc" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-teal-300 font-bold text-xs"></select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1 font-semibold">Payday Date (发薪日期)</label>
+          <input id="inp-sal-date" type="date" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs" />
+        </div>
+      </div>
+      <button onclick="submitSalaryCreditModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm shadow-lg">✓ Credit Salary & Update KWSP (立即入账)</button>
     </div>
   </div>
 

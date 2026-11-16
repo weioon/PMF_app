@@ -87,6 +87,18 @@
       defaultFloor: 0, isZeroInterestLiquid: false, androidPackages: ['com.shopee.my'], pkgVerified: true,
       notificationKeywords: ['shopeepay']
     },
+    {
+      code: 'WISE', group: 'EWALLET', pillar: 'ASSET_LIQUID', subTypeEn: 'Multi-Currency Wallet', subTypeZh: '多币种钱包',
+      nameEn: 'Wise (MYR / Global)', nameZh: 'Wise 多币种钱包', interestMethod: 'NONE', defaultRate: 0, autoAccrue: false,
+      defaultFloor: 0, isZeroInterestLiquid: false, androidPackages: ['com.transferwise.android'], pkgVerified: false,
+      notificationKeywords: ['wise', 'transferwise']
+    },
+    {
+      code: 'BIGPAY', group: 'EWALLET', pillar: 'ASSET_LIQUID', subTypeEn: 'Travel e-Wallet', subTypeZh: '旅游电子钱包',
+      nameEn: 'BigPay', nameZh: 'BigPay 电子钱包', interestMethod: 'NONE', defaultRate: 0, autoAccrue: false,
+      defaultFloor: 0, isZeroInterestLiquid: false, androidPackages: ['com.bigpayme.app'], pkgVerified: false,
+      notificationKeywords: ['bigpay']
+    },
 
     // --- Investments & Money Market ---
     {

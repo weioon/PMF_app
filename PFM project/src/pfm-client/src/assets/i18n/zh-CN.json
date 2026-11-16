@@ -162,5 +162,36 @@
     "QUICK_START": "快速开始（自选大马常用金融机构）",
     "CLEAN_SLATE": "从空白开始（0 账户全新账本）",
     "LOAD_DEMO": "加载完整演示示例数据"
+  },
+  "ANALYTICS": {
+    "CATEGORY_BREAKDOWN": "本月消费分类占比",
+    "HEALTH_CASHFLOW": "财务健康与近 6 个月收支趋势",
+    "EMERGENCY_RUNWAY": "流动紧急备用金可支撑月数",
+    "AVG_MONTHLY_SPEND": "月均实际支出",
+    "PRIVACY_MODE": "隐私遮罩模式（隐藏/显示余额）"
+  },
+  "SPLIT_BILL": {
+    "TOGGLE": "朋友 AA 分账 / 代垫款项",
+    "MY_SHARE": "我个人实际承担金额 (RM)",
+    "DEBTOR_NAME": "朋友 / 欠款人姓名",
+    "SETTLE_BTN": "收回欠款",
+    "LHDN_TAX_LABEL": "LHDN 马来西亚税务减免标签"
+  },
+  "RECURRING": {
+    "TITLE": "周期账单、订阅与发薪公积金自动分账",
+    "ADD_BILL": "+ 新增周期账单",
+    "CREDIT_SALARY_EPF": "一键发放薪资 + EPF",
+    "POST_NOW": "立即入账",
+    "POSTED_THIS_MONTH": "本月已入账"
+  },
+  "CATEGORY_EDITOR": {
+    "ADD_BTN": "+ 新增消费分类",
+    "EDIT_BTN": "编辑预算",
+    "ICON": "图标",
+    "MONTHLY_BUDGET": "月度预算限额 (RM)"
+  },
+  "MERCHANT_RULES": {
+    "TITLE": "商户智能自动分类规则",
+    "LEARN_CHECKBOX": "自动学习此商户与分类映射，用于未来通知自动记账"
   }
 }

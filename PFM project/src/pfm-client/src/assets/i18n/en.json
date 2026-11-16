@@ -162,5 +162,36 @@
     "QUICK_START": "Quick Start (Pick Malaysian Institutions)",
     "CLEAN_SLATE": "Clean Canvas (Zero Accounts)",
     "LOAD_DEMO": "Load Full Sample Demo Data"
+  },
+  "ANALYTICS": {
+    "CATEGORY_BREAKDOWN": "Category Spending Breakdown",
+    "HEALTH_CASHFLOW": "Financial Health & 6M Cashflow",
+    "EMERGENCY_RUNWAY": "Emergency Fund Runway",
+    "AVG_MONTHLY_SPEND": "Average Monthly Spend",
+    "PRIVACY_MODE": "Privacy Blur Mode (Hide/Show Balances)"
+  },
+  "SPLIT_BILL": {
+    "TOGGLE": "Split Bill / Friend Reimbursement (AA)",
+    "MY_SHARE": "My Personal Share (RM)",
+    "DEBTOR_NAME": "Friend / Debtor Name",
+    "SETTLE_BTN": "Settle",
+    "LHDN_TAX_LABEL": "LHDN Tax Relief Tag"
+  },
+  "RECURRING": {
+    "TITLE": "Recurring Bills, Subscriptions & Payday EPF",
+    "ADD_BILL": "+ Add Recurring Bill",
+    "CREDIT_SALARY_EPF": "Credit Salary + EPF",
+    "POST_NOW": "Post Now",
+    "POSTED_THIS_MONTH": "Posted This Month"
+  },
+  "CATEGORY_EDITOR": {
+    "ADD_BTN": "+ Add Category",
+    "EDIT_BTN": "Edit Budget",
+    "ICON": "Icon",
+    "MONTHLY_BUDGET": "Monthly Budget Limit (RM)"
+  },
+  "MERCHANT_RULES": {
+    "TITLE": "Smart Merchant Auto-Categorization Rules",
+    "LEARN_CHECKBOX": "Auto-learn this Merchant -> Category rule for future notifications"
   }
 }

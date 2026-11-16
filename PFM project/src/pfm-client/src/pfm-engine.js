@@ -160,13 +160,13 @@
   // ===========================================================================
   function defaultCategories() {
     return [
-      { id: 'cat-food', code: 'FOOD_DINING', nameEn: 'Food & Dining', nameZh: '餐饮美食', budget: 0 },
-      { id: 'cat-transport', code: 'TRANSPORT_TOLL', nameEn: 'Transport, Toll & Parking', nameZh: '交通、过路费与停车', budget: 0 },
-      { id: 'cat-shopping', code: 'SHOPPING_TECH', nameEn: 'Shopping, Tech & Lifestyle', nameZh: '购物、数码与生活', budget: 0 },
-      { id: 'cat-bills', code: 'BILLS_UTILITIES', nameEn: 'Bills & Utilities', nameZh: '账单与水电费', budget: 0 },
-      { id: 'cat-insurance', code: 'INSURANCE', nameEn: 'Insurance & Protection', nameZh: '保险与医疗保障', budget: 0 },
-      { id: 'cat-fees', code: 'BANK_FEES', nameEn: 'Bank & Transfer Fees', nameZh: '银行与转账手续费', budget: 0 },
-      { id: OTHER_CATEGORY_ID, code: 'OTHER', nameEn: 'Other / Uncategorised', nameZh: '其他 / 未分类', budget: 0 }
+      { id: 'cat-food', code: 'FOOD_DINING', nameEn: 'Food & Dining', nameZh: '餐饮美食', icon: '🍜', budget: 0 },
+      { id: 'cat-transport', code: 'TRANSPORT_TOLL', nameEn: 'Transport, Toll & Parking', nameZh: '交通、过路费与停车', icon: '🚗', budget: 0 },
+      { id: 'cat-shopping', code: 'SHOPPING_TECH', nameEn: 'Shopping, Tech & Lifestyle', nameZh: '购物、数码与生活', icon: '🛍️', budget: 0 },
+      { id: 'cat-bills', code: 'BILLS_UTILITIES', nameEn: 'Bills & Utilities', nameZh: '账单与水电费', icon: '⚡', budget: 0 },
+      { id: 'cat-insurance', code: 'INSURANCE', nameEn: 'Insurance & Protection', nameZh: '保险与医疗保障', icon: '🛡️', budget: 0 },
+      { id: 'cat-fees', code: 'BANK_FEES', nameEn: 'Bank & Transfer Fees', nameZh: '银行与转账手续费', icon: '🏦', budget: 0 },
+      { id: OTHER_CATEGORY_ID, code: 'OTHER', nameEn: 'Other / Uncategorised', nameZh: '其他 / 未分类', icon: '📌', budget: 0 }
     ];
   }
   function defaultTaxBuckets() {
@@ -180,7 +180,7 @@
     return { autoCreateFromNotifications: false, notificationListenerEnabled: true };
   }
   function defaultNotificationState() {
-    return { dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [] };
+    return { dedup: {}, inbox: [], pendingDiscoveries: [], unmappedApps: [], ignoredPackages: [], packageAccountMap: {}, merchantRules: {} };
   }
 
   /** A brand-new install: NO accounts, NOT initialised (onboarding will be shown). */
@@ -193,6 +193,7 @@
       accounts: [],
       transactions: [],
       installmentPlans: [],
+      recurringBills: [],
       categories: defaultCategories(),
       reimbursements: [],
       taxBuckets: defaultTaxBuckets(),
@@ -459,6 +460,7 @@
       data.installmentPlans.forEach((p) => {
         if (p.linkedRepaymentAccountId === id) p.linkedRepaymentAccountId = null;
       });
+      data.recurringBills = (data.recurringBills || []).filter((b) => b.fromAccountId !== id && b.toAccountId !== id);
       data.asnbSnapshots = data.asnbSnapshots.filter((s) => s.accountId !== id);
       if (data.notificationState && data.notificationState.packageAccountMap) {
         Object.keys(data.notificationState.packageAccountMap).forEach((pkg) => {
@@ -543,6 +545,7 @@
       toAccountId: null,
       categoryId: null,
       envelopeId: null,
+      taxCategoryCode: p.taxCategoryCode || null,
       note: String(p.note || '').slice(0, 200),
       source: p.source || 'MANUAL',
       notifHash: p.notifHash || null,
@@ -550,6 +553,7 @@
       planId: null,
       scheduleIds: [],
       reimbursementId: p.reimbursementId || null,
+      createdReimbursementId: null,
       meta: p.meta || null,
       effects: [],
       params: null,
@@ -580,6 +584,23 @@
         tx.categoryId = p.categoryId || OTHER_CATEGORY_ID;
         tx.descEn = p.descEn || `Expense (${tx.note || tx.categoryId}) paid from ${from.nameEn}`;
         tx.descZh = p.descZh || `支出 (${tx.note || tx.categoryId}) 扣自 ${from.nameZh}`;
+        const owedCents = cents - toCents(tx.personalAmount);
+        if (owedCents > 0 && p.createReimbursement !== false) {
+          const reimbId = p.createdReimbursementId || uid('reimb');
+          const debtorName = String(p.debtorName || 'Friend (Split Bill)').trim() || 'Friend (Split Bill)';
+          data.reimbursements = Array.isArray(data.reimbursements) ? data.reimbursements : [];
+          data.reimbursements.push({
+            id: reimbId,
+            sourceTxId: tx.id,
+            debtorName,
+            owedAmount: fromCents(owedCents),
+            descEn: `${tx.note || 'Split Bill'} (${from.nameEn})`,
+            descZh: `${tx.note || 'AA分账代垫'} (${from.nameZh})`,
+            date,
+            settled: false
+          });
+          tx.createdReimbursementId = reimbId;
+        }
         break;
       }
       case 'INCOME': {
@@ -760,7 +781,15 @@
     }
     if (tx.reimbursementId) {
       const r = data.reimbursements.find((x) => x.id === tx.reimbursementId);
-      if (r && r.settledTxId === tx.id) { r.settled = false; delete r.settledTxId; }
+      if (r && r.settledTxId === tx.id) {
+        r.settled = false;
+        delete r.settledTxId;
+        delete r.settledDate;
+        delete r.settledAccountId;
+      }
+    }
+    if (tx.createdReimbursementId) {
+      data.reimbursements = (data.reimbursements || []).filter((x) => x.id !== tx.createdReimbursementId);
     }
     const effects = tx.effects || [];
     applyEffects(data, effects, -1);
@@ -797,6 +826,10 @@
       if (nextType === 'INCOME' && normalizedPatch.accountId && !normalizedPatch.toAccountId) {
         normalizedPatch.toAccountId = normalizedPatch.accountId;
       }
+      if (normalizedPatch.amount !== undefined && normalizedPatch.personalAmount === undefined &&
+          old.params && old.params.personalAmount !== undefined && toCents(old.params.personalAmount) === toCents(old.amount)) {
+        normalizedPatch.personalAmount = normalizedPatch.amount;
+      }
       const merged = Object.assign({}, old.params, normalizedPatch, {
         id: old.id, createdAt: old.createdAt, type: nextType, source: old.source,
         notifHash: old.notifHash, linkedNotifHashes: old.linkedNotifHashes
@@ -806,6 +839,15 @@
         merged.scheduleIds = old.scheduleIds;
         merged.planId = old.planId;
         merged.liabilityAccountId = normalizedPatch.toAccountId || old.toAccountId;
+      }
+      if (nextType !== 'EXPENSE') {
+        delete merged.personalAmount;
+        delete merged.createdReimbursementId;
+      }
+      // Self-learning merchant rule when user corrects category on a notification or requests learning
+      if (nextType === 'EXPENSE' && normalizedPatch.categoryId &&
+          (normalizedPatch.learnRule || (old.source === 'NOTIFICATION' && normalizedPatch.categoryId !== old.categoryId))) {
+        learnMerchantCategory(data, merged.note || old.note || '', normalizedPatch.categoryId);
       }
       reverseTransactionInternal(data, old, today);
       return postTransactionInternal(data, merged, opts);
@@ -1116,12 +1158,109 @@
     return deleteInstallmentPlan(data, planId);
   }
 
+  function recomputeTaxBuckets(data, targetYear) {
+    const yr = String(targetYear || todayStr().slice(0, 4));
+    const buckets = Array.isArray(data.taxBuckets) ? data.taxBuckets : [];
+    buckets.forEach((b) => {
+      const txCents = (data.transactions || []).reduce((sum, tx) => {
+        if (tx.taxCategoryCode !== b.code) return sum;
+        if (tx.date && !String(tx.date).startsWith(yr + '-')) return sum;
+        const val = tx.type === 'EXPENSE' ? (tx.personalAmount ?? tx.amount) : tx.amount;
+        return sum + toCents(val || 0);
+      }, 0);
+      const baseCents = toCents(b.manualBaseClaimed || 0);
+      b.claimed = fromCents(txCents + baseCents);
+    });
+    return buckets;
+  }
+
+  function settleReimbursement(data, reimbId, toAccountId, opts) {
+    const today = (opts && opts.today) || todayStr();
+    return atomic(data, () => {
+      const r = (data.reimbursements || []).find((x) => x.id === reimbId);
+      if (!r) throw new PfmError('TX_NOT_FOUND');
+      if (r.settled) throw new PfmError('NO_CHANGE');
+      const targetAcc = toAccountId
+        ? requireAccount(data, toAccountId)
+        : (data.accounts || []).find((a) => a.pillar === 'ASSET_LIQUID');
+      if (!targetAcc) throw new PfmError('ACCOUNT_NOT_FOUND');
+      const tx = postTransactionInternal(data, {
+        type: 'INCOME',
+        toAccountId: targetAcc.id,
+        amount: r.owedAmount,
+        date: (opts && opts.date) || today,
+        reimbursementId: r.id,
+        note: `Split Bill Settled: ${r.debtorName}`,
+        descEn: `Reimbursement Settled from ${r.debtorName} -> ${targetAcc.nameEn}`,
+        descZh: `收回 ${r.debtorName} AA分账款项 -> ${targetAcc.nameZh}`,
+        meta: { isReimbursementSettlement: true, debtorName: r.debtorName }
+      }, { today, force: true });
+      r.settled = true;
+      r.settledTxId = tx.id;
+      r.settledAccountId = targetAcc.id;
+      r.settledDate = tx.date;
+      return { reimbursement: r, tx };
+    });
+  }
+
+  function upsertCategory(data, input) {
+    return atomic(data, () => {
+      const nameEn = String(input.nameEn || input.nameZh || '').trim();
+      const nameZh = String(input.nameZh || input.nameEn || '').trim();
+      if (!nameEn && !nameZh) throw new PfmError('NAME_REQUIRED');
+      const budget = parseNonNegative(input.budget ?? 0, 'INVALID_AMOUNT');
+      const icon = String(input.icon || '📌').trim() || '📌';
+      data.categories = Array.isArray(data.categories) ? data.categories : defaultCategories();
+      const existing = input.id ? data.categories.find((c) => c.id === input.id) : null;
+      if (existing) {
+        existing.nameEn = nameEn;
+        existing.nameZh = nameZh;
+        existing.budget = budget;
+        existing.icon = icon;
+        if (input.code) existing.code = String(input.code).trim().toUpperCase().replace(/\s+/g, '_');
+        return existing;
+      }
+      const created = {
+        id: input.id || uid('cat'),
+        code: String(input.code || nameEn).trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 24) || 'CUSTOM',
+        nameEn,
+        nameZh,
+        icon,
+        budget
+      };
+      data.categories.push(created);
+      return created;
+    });
+  }
+
+  function deleteCategory(data, categoryId) {
+    return atomic(data, () => {
+      if (!categoryId || categoryId === OTHER_CATEGORY_ID || categoryId === 'cat-fees') {
+        throw new PfmError('TX_NOT_EDITABLE');
+      }
+      const exists = (data.categories || []).some((c) => c.id === categoryId);
+      if (!exists) throw new PfmError('TX_NOT_FOUND');
+      data.categories = data.categories.filter((c) => c.id !== categoryId);
+      (data.transactions || []).forEach((tx) => {
+        if (tx.categoryId === categoryId) tx.categoryId = OTHER_CATEGORY_ID;
+      });
+      (data.installmentPlans || []).forEach((p) => {
+        if (p.categoryId === categoryId) p.categoryId = OTHER_CATEGORY_ID;
+      });
+      (data.recurringBills || []).forEach((b) => {
+        if (b.categoryId === categoryId) b.categoryId = OTHER_CATEGORY_ID;
+      });
+      return true;
+    });
+  }
+
   function afterLedgerChange(data, effects, txDate, today) {
     const ids = new Set(effects.map((e) => e.accountId));
     ids.forEach((id) => {
       const acc = findAccount(data, id);
       if (acc && (acc.interestMethod === 'ASNB_MIN_MONTHLY' || acc.interestMethod === 'LOWEST_MONTHLY_BALANCE')) refreshAsnb(data, acc, today, txDate);
     });
+    recomputeTaxBuckets(data, (today || todayStr()).slice(0, 4));
   }
 
   // ===========================================================================
@@ -1718,6 +1857,8 @@
     return res;
   }
 
+  function prevYm(ym) { const [y, m] = ym.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${pad2(m - 1)}`; }
+
   function computeRollup(data, today) {
     const t = (typeof today === 'string' ? today : (today && today.today)) || todayStr();
     const ym = ymOf(t);
@@ -1731,7 +1872,8 @@
     const locked = liquidAccs.reduce((s, a) => s + (a.envelopes || []).reduce((es, e) => es + toCents(e.allocated), 0), 0);
     const cats = categorySpend(data, ym);
     const monthSpend = Object.keys(cats).reduce((s, k) => s + toCents(cats[k].total), 0);
-    const monthIncome = data.transactions.filter((tx) => tx.type === 'INCOME' && tx.date && ymOf(tx.date) === ym)
+    const monthIncome = data.transactions
+      .filter((tx) => tx.type === 'INCOME' && !(tx.meta && tx.meta.isReimbursementSettlement) && tx.date && ymOf(tx.date) === ym)
       .reduce((s, tx) => s + toCents(tx.amount), 0);
     const instDue = data.installmentPlans.reduce((s, p) => s + p.schedules
       .filter((r) => r.dueDate && ymOf(r.dueDate) === ym).reduce((x, r) => x + toCents(r.amount), 0), 0);
@@ -1749,6 +1891,81 @@
       monthlyInstallmentDue: fromCents(instDue),
       dsrPercent: incomeBase > 0 ? Math.round((instDue / incomeBase) * 10000) / 100 : 0,
       categories: cats
+    };
+  }
+
+  function computeAnalytics(data, today) {
+    const t = (typeof today === 'string' ? today : (today && today.today)) || todayStr();
+    const curYm = ymOf(t);
+    const pYm = prevYm(curYm);
+    const rollup = computeRollup(data, t);
+    const prevCats = categorySpend(data, pYm);
+    const prevSpendCents = Object.keys(prevCats).reduce((s, k) => s + toCents(prevCats[k].total), 0);
+    const curSpendCents = toCents(rollup.monthSpend);
+
+    // Build 6-month cashflow series (oldest to newest)
+    const months = [];
+    let mCursor = curYm;
+    for (let i = 0; i < 6; i++) { months.unshift(mCursor); mCursor = prevYm(mCursor); }
+    const sixMonthCashflow = months.map((ym) => {
+      const mCats = categorySpend(data, ym);
+      const expenseCents = Object.keys(mCats).reduce((s, k) => s + toCents(mCats[k].total), 0);
+      const incomeCents = (data.transactions || [])
+        .filter((tx) => tx.type === 'INCOME' && !(tx.meta && tx.meta.isReimbursementSettlement) && tx.date && ymOf(tx.date) === ym)
+        .reduce((s, tx) => s + toCents(tx.amount), 0);
+      return { ym, income: fromCents(incomeCents), expense: fromCents(expenseCents) };
+    });
+
+    // Average monthly spend from non-zero months (or fallback to current month)
+    const nonZeroMonths = sixMonthCashflow.filter((m) => m.expense > 0);
+    const avgMonthlySpend = nonZeroMonths.length
+      ? round2(nonZeroMonths.reduce((s, m) => s + m.expense, 0) / nonZeroMonths.length)
+      : rollup.monthSpend;
+
+    const totalAssets = addMoney(rollup.totalLiquid, rollup.totalInvest);
+    const liquidRunwayMonths = avgMonthlySpend > 0 ? Math.round((rollup.totalLiquid / avgMonthlySpend) * 10) / 10 : 0;
+    const totalRunwayMonths = avgMonthlySpend > 0 ? Math.round((totalAssets / avgMonthlySpend) * 10) / 10 : 0;
+    const runwayGrade = avgMonthlySpend <= 0 ? 'NO_DATA' : (totalRunwayMonths >= 6 ? 'STRONG' : (totalRunwayMonths >= 3 ? 'MODERATE' : 'BUILDING'));
+
+    const palette = ['#10b981', '#0ea5e9', '#f59e0b', '#f43f5e', '#8b5cf6', '#14b8a6', '#ec4899', '#64748b'];
+    const categoryBreakdown = (data.categories || []).map((c, idx) => {
+      const row = rollup.categories[c.id] || { direct: 0, installment: 0, total: 0 };
+      const amt = row.total || 0;
+      const pct = rollup.monthSpend > 0 ? Math.round((amt / rollup.monthSpend) * 1000) / 10 : 0;
+      return {
+        categoryId: c.id,
+        nameEn: c.nameEn,
+        nameZh: c.nameZh,
+        icon: c.icon || '📌',
+        amount: amt,
+        direct: row.direct || 0,
+        installment: row.installment || 0,
+        budget: c.budget || 0,
+        percent: pct,
+        color: palette[idx % palette.length]
+      };
+    }).filter((x) => x.amount > 0).sort((a, b) => b.amount - a.amount);
+
+    const deltaCents = curSpendCents - prevSpendCents;
+    const deltaPercent = prevSpendCents > 0 ? Math.round((deltaCents / prevSpendCents) * 1000) / 10 : 0;
+
+    return {
+      ym: curYm,
+      prevYm: pYm,
+      totalAssets,
+      netWorth: rollup.netWorth,
+      avgMonthlySpend,
+      liquidRunwayMonths,
+      emergencyRunwayMonths: totalRunwayMonths,
+      runwayGrade,
+      monthComparison: {
+        currentMonthSpend: rollup.monthSpend,
+        previousMonthSpend: fromCents(prevSpendCents),
+        deltaAmount: fromCents(deltaCents),
+        deltaPercent
+      },
+      sixMonthCashflow,
+      categoryBreakdown
     };
   }
 
@@ -1887,6 +2104,230 @@
     }
 
     return alerts;
+  }
+
+  // ===========================================================================
+  // RECURRING BILLS / SUBSCRIPTIONS & MALAYSIAN SALARY + EPF AUTO-SPLITTER
+  // ===========================================================================
+  function upsertRecurringBill(data, input) {
+    return atomic(data, () => {
+      const nameEn = String(input.nameEn || input.nameZh || '').trim();
+      const nameZh = String(input.nameZh || input.nameEn || '').trim();
+      if (!nameEn && !nameZh) throw new PfmError('NAME_REQUIRED');
+      const amount = parseAmount(input.amount);
+      const dayOfMonth = parseDueDay(input.dayOfMonth ?? 1);
+      const txType = (input.type === 'INCOME' || input.type === 'TRANSFER') ? input.type : 'EXPENSE';
+      data.recurringBills = Array.isArray(data.recurringBills) ? data.recurringBills : [];
+      const existing = input.id ? data.recurringBills.find((b) => b.id === input.id) : null;
+      const record = {
+        id: existing ? existing.id : (input.id || uid('rec')),
+        nameEn,
+        nameZh,
+        type: txType,
+        amount,
+        dayOfMonth,
+        fromAccountId: input.fromAccountId || null,
+        toAccountId: input.toAccountId || null,
+        categoryId: input.categoryId || OTHER_CATEGORY_ID,
+        frequency: input.frequency === 'YEARLY' ? 'YEARLY' : 'MONTHLY',
+        active: input.active !== false,
+        lastPostedYm: existing ? existing.lastPostedYm : (input.lastPostedYm || null)
+      };
+      if (existing) Object.assign(existing, record);
+      else data.recurringBills.push(record);
+      return existing || record;
+    });
+  }
+
+  function deleteRecurringBill(data, billId) {
+    return atomic(data, () => {
+      data.recurringBills = (data.recurringBills || []).filter((b) => b.id !== billId);
+      return true;
+    });
+  }
+
+  function getPendingRecurringBills(data, today) {
+    const t = today || todayStr();
+    const curYm = ymOf(t);
+    const curDay = Number(t.split('-')[2]);
+    return (data.recurringBills || [])
+      .filter((b) => b && b.active !== false && b.lastPostedYm !== curYm)
+      .map((b) => {
+        const diff = Number(b.dayOfMonth || 1) - curDay;
+        return Object.assign({}, b, { daysUntilDue: diff, isDueNow: diff <= 3 });
+      });
+  }
+
+  function postRecurringBill(data, billId, opts) {
+    const today = (opts && opts.today) || todayStr();
+    return atomic(data, () => {
+      const bill = (data.recurringBills || []).find((b) => b.id === billId);
+      if (!bill) throw new PfmError('TX_NOT_FOUND');
+      const postDate = (opts && opts.date) || today;
+      const note = `${bill.nameEn} (Recurring)`;
+      let tx;
+      if (bill.type === 'INCOME') {
+        tx = postTransactionInternal(data, {
+          type: 'INCOME',
+          toAccountId: bill.toAccountId || bill.fromAccountId,
+          amount: bill.amount,
+          date: postDate,
+          note
+        }, { today, force: true });
+      } else if (bill.type === 'TRANSFER') {
+        tx = postTransactionInternal(data, {
+          type: 'TRANSFER',
+          fromAccountId: bill.fromAccountId,
+          toAccountId: bill.toAccountId,
+          amount: bill.amount,
+          transferFee: 0,
+          date: postDate,
+          note
+        }, { today, force: true });
+      } else {
+        tx = postTransactionInternal(data, {
+          type: 'EXPENSE',
+          fromAccountId: bill.fromAccountId,
+          amount: bill.amount,
+          categoryId: bill.categoryId || 'cat-bills',
+          date: postDate,
+          note
+        }, { today, force: true });
+      }
+      bill.lastPostedYm = ymOf(postDate);
+      return { bill, tx };
+    });
+  }
+
+  function creditSalaryWithEpf(data, input, opts) {
+    const today = (opts && opts.today) || todayStr();
+    return atomic(data, () => {
+      const netSalary = parseAmount(input.netSalary);
+      const bankAcc = requireAccount(data, input.toAccountId);
+      const postDate = parseDate(input.date || today);
+      const employeeEpfRate = parseRate(input.employeeEpfRate ?? 11);
+      const employerEpfRate = parseRate(input.employerEpfRate ?? 12);
+      const grossSalary = input.grossSalary !== undefined && input.grossSalary !== '' && Number(input.grossSalary) > 0
+        ? parseAmount(input.grossSalary)
+        : netSalary;
+
+      const salaryTx = postTransactionInternal(data, {
+        type: 'INCOME',
+        toAccountId: bankAcc.id,
+        incomeSourceId: input.incomeSourceId || null,
+        amount: netSalary,
+        date: postDate,
+        note: String(input.note || 'Monthly Net Salary').trim(),
+        descEn: `Monthly Salary Credited to ${bankAcc.nameEn}`,
+        descZh: `月度薪资入账至 ${bankAcc.nameZh}`
+      }, { today, force: true });
+
+      let epfTx = null;
+      let epfContribution = 0;
+      const epfAcc = input.epfAccountId
+        ? findAccount(data, input.epfAccountId)
+        : (data.accounts || []).find((a) => a.catalogCode === 'EPF' || /epf|kwsp/i.test(a.nameEn || ''));
+
+      if (epfAcc && (employeeEpfRate > 0 || employerEpfRate > 0)) {
+        const customEpf = input.customEpfAmount !== undefined && input.customEpfAmount !== '' && Number(input.customEpfAmount) > 0
+          ? parseAmount(input.customEpfAmount)
+          : null;
+        epfContribution = customEpf !== null
+          ? customEpf
+          : round2(grossSalary * ((employeeEpfRate + employerEpfRate) / 100));
+        if (epfContribution > 0) {
+          epfTx = postTransactionInternal(data, {
+            type: 'INCOME',
+            toAccountId: epfAcc.id,
+            amount: epfContribution,
+            date: postDate,
+            note: `EPF (${employeeEpfRate}% + ${employerEpfRate}%)`,
+            descEn: `EPF Contribution (${employeeEpfRate}% + ${employerEpfRate}%) -> ${epfAcc.nameEn}`,
+            descZh: `EPF 公积金缴纳 (${employeeEpfRate}% + ${employerEpfRate}%) -> ${epfAcc.nameZh}`,
+            meta: { isEpfContribution: true, grossSalary, employeeEpfRate, employerEpfRate }
+          }, { today, force: true });
+        }
+      }
+      return { salaryTx, epfTx, epfContribution };
+    });
+  }
+
+  // ===========================================================================
+  // SMART MERCHANT AUTO-CATEGORIZATION & SELF-LEARNING ENGINE
+  // ===========================================================================
+  const MERCHANT_CATEGORY_RULES = [
+    {
+      categoryId: 'cat-food',
+      keywords: [
+        '99 speedmart', 'speedmart', 'zus', 'tealive', 'starbucks', 'kfc', 'mcd', 'mcdonald',
+        'burger king', 'mamak', 'kopitiam', 'restoran', 'restaurant', 'cafe', 'bistro',
+        'grabfood', 'foodpanda', 'shopeefood', 'familymart', 'mynews', '7-eleven', '7 eleven',
+        'jaya grocer', 'village grocer', 'lotus', 'aeon', 'mydin', 'nsk', 'econsave',
+        'nasi kandar', 'pelita', 'secret recipe', 'mixue', 'chagee', 'oriental kopi', 'bakery', 'sushi', 'ramen', 'dim sum'
+      ]
+    },
+    {
+      categoryId: 'cat-transport',
+      keywords: [
+        'petronas', 'shell', 'caltex', 'bhp', 'petron', 'setel', 'toll', 'duke', 'ldp',
+        'akleh', 'smart tunnel', 'rapidkl', 'mrt', 'lrt', 'ktm', 'klia', 'erl',
+        'grab ride', 'grabcar', 'indrive', 'maxim', 'parking', 'autopass', 'rfid', 'plus highway'
+      ]
+    },
+    {
+      categoryId: 'cat-bills',
+      keywords: [
+        'tnb', 'tenaga', 'syabas', 'air selangor', 'indah water', 'unifi', 'maxis', 'celcom',
+        'digi', 'celcomdigi', 'u mobile', 'umobile', 'yes 5g', 'time dotcom', 'astro',
+        'coway', 'cuckoo', 'netflix', 'spotify', 'icloud', 'youtube', 'google one', 'electric', 'water bill'
+      ]
+    },
+    {
+      categoryId: 'cat-shopping',
+      keywords: [
+        'shopee', 'lazada', 'tiktok shop', 'uniqlo', 'h&m', 'zara', 'ikea', 'mr diy', 'mr.diy',
+        'daiso', 'watsons', 'guardian', 'caring', 'apple store', 'harvey norman', 'machines', 'decathlon', 'popular'
+      ]
+    },
+    {
+      categoryId: 'cat-insurance',
+      keywords: [
+        'prudential', 'aia', 'great eastern', 'allianz', 'etiqa', 'takaful', 'zurich',
+        'tokio marine', 'klinik', 'clinic', 'hospital', 'gleneagles', 'sunway medical', 'pantai', 'pharmacy', 'dental'
+      ]
+    }
+  ];
+
+  function normalizeMerchantKey(str) {
+    return String(str || '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function learnMerchantCategory(data, merchantOrNote, categoryId) {
+    const key = normalizeMerchantKey(merchantOrNote);
+    if (!key || !categoryId) return false;
+    data.notificationState = Object.assign(defaultNotificationState(), data.notificationState || {});
+    data.notificationState.merchantRules = Object.assign({}, data.notificationState.merchantRules || {});
+    data.notificationState.merchantRules[key] = categoryId;
+    return true;
+  }
+
+  function categorizeMerchant(data, merchant, fullText) {
+    const validIds = new Set((data.categories || []).map((c) => c.id));
+    const merchantKey = normalizeMerchantKey(merchant);
+    const fullKey = normalizeMerchantKey(fullText);
+    const rules = (data.notificationState && data.notificationState.merchantRules) || {};
+
+    if (merchantKey && rules[merchantKey] && validIds.has(rules[merchantKey])) return rules[merchantKey];
+    const matchedLearnedKey = Object.keys(rules).find((k) => k.length >= 3 && (merchantKey.includes(k) || fullKey.includes(k)));
+    if (matchedLearnedKey && validIds.has(rules[matchedLearnedKey])) return rules[matchedLearnedKey];
+
+    const combined = `${String(merchant || '')} ${String(fullText || '')}`.toLowerCase();
+    for (const rule of MERCHANT_CATEGORY_RULES) {
+      if (!validIds.has(rule.categoryId)) continue;
+      if (rule.keywords.some((kw) => combined.includes(kw))) return rule.categoryId;
+    }
+
+    return OTHER_CATEGORY_ID;
   }
 
   // ===========================================================================
@@ -2100,12 +2541,13 @@
       }
 
       // 3) Post. Bank notifications reflect money that already moved, so negative balances are allowed.
+      const autoCategoryId = parsed.direction === 'CREDIT' ? null : categorizeMerchant(data, parsed.merchant, parsed.text);
       const tx = postTransactionInternal(data, parsed.direction === 'CREDIT'
         ? { type: 'INCOME', toAccountId: acc.id, amount: parsed.amount, date: postedDate, note: parsed.merchant || logEntry.title, source: 'NOTIFICATION', notifHash: hash }
-        : { type: 'EXPENSE', fromAccountId: acc.id, amount: parsed.amount, categoryId: OTHER_CATEGORY_ID, date: postedDate, note: parsed.merchant || logEntry.title, source: 'NOTIFICATION', notifHash: hash },
+        : { type: 'EXPENSE', fromAccountId: acc.id, amount: parsed.amount, categoryId: autoCategoryId || OTHER_CATEGORY_ID, date: postedDate, note: parsed.merchant || logEntry.title, source: 'NOTIFICATION', notifHash: hash },
       { today, force: true });
-      pushLog('POSTED', { txId: tx.id, accountId: acc.id, txType: tx.type });
-      return { status: 'POSTED', txType: tx.type, txId: tx.id, accountId: acc.id, hash };
+      pushLog('POSTED', { txId: tx.id, accountId: acc.id, txType: tx.type, categoryId: tx.categoryId });
+      return { status: 'POSTED', txType: tx.type, txId: tx.id, accountId: acc.id, categoryId: tx.categoryId, hash };
     });
   }
 
@@ -2242,14 +2684,17 @@
     data.netMonthlyIncome = Number.isFinite(Number(src.netMonthlyIncome)) ? round2(src.netMonthlyIncome) : 0;
     data.accounts = (Array.isArray(src.accounts) ? src.accounts : []).map((a) => normalizeAccount(a, today));
     if (Array.isArray(src.categories) && src.categories.length) {
+      const defIcons = { 'cat-food': '🍜', 'cat-transport': '🚗', 'cat-shopping': '🛍️', 'cat-bills': '⚡', 'cat-insurance': '🛡️', 'cat-fees': '🏦', [OTHER_CATEGORY_ID]: '📌' };
       data.categories = src.categories.map((c) => ({
         id: c.id || uid('cat'), code: c.code || 'CUSTOM',
         nameEn: c.nameEn || c.nameZh || 'Category', nameZh: c.nameZh || c.nameEn || 'Category',
+        icon: c.icon || defIcons[c.id] || '📌',
         budget: Number.isFinite(Number(c.budget)) && Number(c.budget) >= 0 ? round2(c.budget) : 0
       }));
       if (!data.categories.some((c) => c.id === OTHER_CATEGORY_ID)) data.categories.push(defaultCategories().find((c) => c.id === OTHER_CATEGORY_ID));
     }
     data.reimbursements = Array.isArray(src.reimbursements) ? src.reimbursements.map((r) => Object.assign({ id: r.id || uid('reimb') }, r)) : [];
+    data.recurringBills = Array.isArray(src.recurringBills) ? src.recurringBills.map((b) => Object.assign({ id: b.id || uid('rec'), active: b.active !== false }, b)) : [];
     data.taxBuckets = Array.isArray(src.taxBuckets) && src.taxBuckets.length ? src.taxBuckets.filter((b) => b && b.code) : defaultTaxBuckets();
     data.asnbSnapshots = Array.isArray(src.asnbSnapshots) ? src.asnbSnapshots.map((s) => Object.assign({ id: s.id || uid('snap') }, s)) : [];
     data.settings = Object.assign(defaultSettings(), src.settings || {});
@@ -2341,6 +2786,7 @@
       monthlyFee: 0, startDate: today, dueDay: 5, categoryId: 'cat-shopping'
     }, { today });
     postTransaction(data, { type: 'EXPENSE', fromAccountId: maybank.id, amount: 23.5, categoryId: 'cat-food', note: 'Lunch', date: today }, { today });
+    upsertRecurringBill(data, { nameEn: 'Unifi Fibre 300Mbps', nameZh: 'Unifi 光纤宽带月费', type: 'EXPENSE', amount: 139, dayOfMonth: 18, fromAccountId: maybank.id, categoryId: 'cat-bills' });
     return data;
   }
 
@@ -2354,17 +2800,21 @@
     createEmptyData, normalizeData, buildDemoData, findLegacyDemoRecords, removeLegacyDemoRecords, defaultCategories,
     // accounts
     createAccount, createAccountFromCatalog, updateAccountSettings, deleteAccount, findAccount,
-    // ledger
+    // ledger, categories, tax & reimbursements
     postTransaction, deleteTransaction, editTransaction, findTx, atomic,
+    settleReimbursement, recomputeTaxBuckets, upsertCategory, deleteCategory,
     // installments
     splitPrincipal, buildSchedule, createInstallmentPurchase, createManualMonthlyInstallment, getDueInstallments, payInstallment, payInstallmentsBatch, planSummary,
     editInstallmentPlan, editInstallmentScheduleRow, deleteInstallmentScheduleRow, deleteInstallmentPlan, updatePlanDetails, deleteLegacyPlan,
+    // recurring & payroll
+    upsertRecurringBill, deleteRecurringBill, getPendingRecurringBills, postRecurringBill, creditSalaryWithEpf,
     // interest / ASNB
     getEffectiveRate, computeYieldMetrics, runCatchUp, refreshAsnb, eodSeries, asnbDividend,
-    // roll-ups & guardrails
-    safeToSpend, categorySpend, computeRollup, evaluateGuardrails,
-    // notifications
-    parseNotification, ingestNotification, dismissDiscovery, linkPackageToAccount, setPackageAccountMapping, ignorePackage, fnv1a
+    // roll-ups, analytics & guardrails
+    safeToSpend, categorySpend, computeRollup, computeAnalytics, evaluateGuardrails,
+    // notifications & smart categorization
+    parseNotification, ingestNotification, dismissDiscovery, linkPackageToAccount, setPackageAccountMapping, ignorePackage, fnv1a,
+    MERCHANT_CATEGORY_RULES, categorizeMerchant, learnMerchantCategory
   };
 });
 
