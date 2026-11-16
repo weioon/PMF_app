@@ -16,31 +16,47 @@
     body {
       font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
       -webkit-tap-highlight-color: transparent;
+      background-color: #070b14;
+      background-image:
+        radial-gradient(at 15% 0%, rgba(16, 185, 129, 0.14) 0px, transparent 50%),
+        radial-gradient(at 85% 5%, rgba(56, 189, 248, 0.10) 0px, transparent 45%);
     }
-    .numpad-key:active, .tap-scale:active { transform: scale(0.97); }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .hero-card {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.22) 0%, rgba(15, 23, 42, 0.92) 55%, rgba(14, 165, 233, 0.16) 100%);
+      border: 1px solid rgba(52, 211, 153, 0.28);
+      box-shadow: 0 20px 45px -18px rgba(16, 185, 129, 0.28);
+    }
+    .numpad-key, .tap-scale { transition: transform 0.14s ease, background-color 0.14s ease; }
+    .numpad-key:active, .tap-scale:active { transform: scale(0.96); }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-28 select-none sm:select-auto">
+<body class="text-slate-100 min-h-screen pb-28 select-none sm:select-auto">
 
   <!-- PWA / App Update Available Toast Banner -->
-  <div id="pwa-update-banner" class="hidden sticky top-0 z-50 bg-emerald-500 text-slate-950 px-3.5 py-2 text-xs font-extrabold flex items-center justify-between shadow-lg">
-    <span id="pwa-update-text">New code update ready! Your local financial data is 100% preserved.</span>
-    <button onclick="applySwUpdateNow()" class="px-3 py-1 rounded-lg bg-slate-950 text-emerald-400 font-black">Update Now</button>
+  <div id="pwa-update-banner" class="hidden sticky top-0 z-50 bg-emerald-500 text-slate-950 px-4 py-2 text-xs font-extrabold flex items-center justify-between shadow-lg">
+    <span id="pwa-update-text">App update ready! Your data is safely preserved.</span>
+    <button onclick="applySwUpdateNow()" class="px-3 py-1 rounded-full bg-slate-950 text-emerald-400 font-black">Update</button>
   </div>
 
-  <!-- Top Mobile App Bar -->
-  <header class="sticky top-0 z-40 backdrop-blur-lg bg-slate-900/95 border-b border-slate-800 px-3.5 py-2.5">
+  <!-- Top Mobile App Bar (Clean Modern Consumer Style) -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-[#070b14]/85 border-b border-white/[0.06] px-4 py-3">
     <div class="max-w-5xl mx-auto flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center font-black text-slate-950 text-sm shadow-md">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-400 to-sky-500 flex items-center justify-center font-black text-slate-950 text-sm shadow-lg shadow-emerald-500/20">
           RM
         </div>
         <div class="truncate">
           <div class="flex items-center gap-1.5">
-            <h1 id="app-title" class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate"></h1>
-            <span id="badge-offline-db" class="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[9px] font-black uppercase tracking-wider shrink-0">IndexedDB Local</span>
+            <h1 id="app-title" class="text-base font-extrabold tracking-tight text-white truncate">MyPFM</h1>
+            <span id="badge-offline-db" class="hidden sm:inline-block px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-bold">Offline Ready</span>
           </div>
           <p id="app-subtitle" class="text-[11px] text-slate-400 truncate"></p>
         </div>
@@ -48,42 +64,42 @@
 
       <div class="flex items-center gap-1.5 shrink-0">
         <!-- 1-Tap Privacy Mask Toggle -->
-        <button onclick="togglePrivacyMode()" id="btn-privacy-toggle" class="tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1" title="Privacy Blur Mode (Hide/Show Balances)">
+        <button onclick="togglePrivacyMode()" id="btn-privacy-toggle" class="tap-scale w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-xs font-bold flex items-center justify-center" title="Hide / Show Balances">
           <span id="icon-privacy-toggle">👁️</span>
         </button>
 
-        <!-- Backup / Restore Quick Button -->
-        <button onclick="switchTab('backup')" class="tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1" title="JSON Backup & Restore">
-          <span>💾</span>
-          <span id="lbl-backup-btn" class="hidden sm:inline">Backup</span>
-        </button>
-
         <!-- Alert Bell Badge -->
-        <button onclick="switchTab('alerts')" class="tap-scale relative px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-          <span id="lbl-alert-bell" class="hidden xs:inline"></span>
+        <button onclick="switchTab('alerts')" class="tap-scale relative px-2.5 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-xs font-bold flex items-center gap-1.5">
+          <span>🔔</span>
+          <span id="lbl-alert-bell" class="hidden"></span>
           <span id="badge-alert-count" class="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">0</span>
         </button>
 
+        <!-- Settings & Backup Gear -->
+        <button onclick="switchTab('backup')" class="tap-scale px-2.5 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-emerald-300 text-xs font-bold flex items-center gap-1" title="Settings & Backup">
+          <span>⚙️</span>
+          <span id="lbl-backup-btn" class="hidden sm:inline">Settings</span>
+        </button>
+
         <!-- 1-Tap EN / 中文 Language Switcher -->
-        <div class="inline-flex rounded-xl bg-slate-800 p-0.5 border border-slate-700">
-          <button id="btn-lang-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all">EN</button>
-          <button id="btn-lang-zh" onclick="setLanguage('zh-CN')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition-all">中文</button>
+        <div class="inline-flex rounded-full bg-white/[0.06] p-0.5 border border-white/[0.08]">
+          <button id="btn-lang-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-all">EN</button>
+          <button id="btn-lang-zh" onclick="setLanguage('zh-CN')" class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-all">中文</button>
         </div>
       </div>
     </div>
 
-    <!-- Scrollable Sub-Navigation Pills for Secondary Views -->
+    <!-- Scrollable Pill Navigation for Secondary Spaces -->
     <nav class="max-w-5xl mx-auto mt-2.5 flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-      <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('history')" id="tab-btn-history" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('categories')" id="tab-btn-categories" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('envelopes')" id="tab-btn-envelopes" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('installments')" id="tab-btn-installments" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('asnb')" id="tab-btn-asnb" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('alerts')" id="tab-btn-alerts" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
-      <button onclick="switchTab('backup')" id="tab-btn-backup" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('history')" id="tab-btn-history" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('categories')" id="tab-btn-categories" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('envelopes')" id="tab-btn-envelopes" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('installments')" id="tab-btn-installments" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('asnb')" id="tab-btn-asnb" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('alerts')" id="tab-btn-alerts" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
+      <button onclick="switchTab('backup')" id="tab-btn-backup" class="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"></button>
     </nav>
   </header>
 
@@ -102,79 +118,120 @@
   </div>
 
   <main class="max-w-5xl mx-auto px-3.5 pt-4 space-y-5">
-    <!-- TAB 1: 4-PILLAR ROLL-UP DASHBOARD & DIRECT ACCOUNT BALANCE EDITOR -->
+    <!-- TAB 1: HOME OVERVIEW, QUICK ACTIONS & MY WALLETS -->
     <section id="view-dashboard" class="space-y-4">
+      <!-- Consumer Fintech Hero Balance Card & Quick Action Bar -->
+      <div id="hero-wealth-card" class="hero-card rounded-3xl p-5 space-y-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p id="lbl-hero-greeting" class="text-[11px] font-bold uppercase tracking-wider text-emerald-300/90">Available Safe-to-Spend</p>
+            <p id="val-hero-safe" class="text-3xl sm:text-4xl font-black tracking-tight text-white mt-1">RM 0.00</p>
+            <p id="lbl-hero-sub" class="text-xs text-slate-300 mt-1"></p>
+          </div>
+          <div class="text-right bg-slate-950/50 border border-white/[0.08] rounded-2xl px-3.5 py-2">
+            <span id="lbl-hero-networth" class="text-[10px] text-slate-400 block font-semibold">Total Net Worth</span>
+            <strong id="val-hero-networth" class="text-sm sm:text-base font-black text-emerald-400">RM 0.00</strong>
+          </div>
+        </div>
+
+        <!-- 4 Consumer Quick Action Buttons -->
+        <div class="grid grid-cols-4 gap-2 pt-1">
+          <button onclick="openNumpadWithMode('EXPENSE')" class="tap-scale flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08]">
+            <span class="w-9 h-9 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center text-base">💸</span>
+            <span id="qa-lbl-spend" class="text-[11px] font-bold text-white">Spend</span>
+          </button>
+          <button onclick="openNumpadWithMode('INCOME')" class="tap-scale flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08]">
+            <span class="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-base">💰</span>
+            <span id="qa-lbl-income" class="text-[11px] font-bold text-white">Income</span>
+          </button>
+          <button onclick="openNumpadWithMode('TRANSFER')" class="tap-scale flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08]">
+            <span class="w-9 h-9 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center text-base">⇄</span>
+            <span id="qa-lbl-transfer" class="text-[11px] font-bold text-white">Transfer</span>
+          </button>
+          <button onclick="openCreateAccountModal()" class="tap-scale flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08]">
+            <span class="w-9 h-9 rounded-full bg-teal-500/20 text-teal-300 flex items-center justify-center text-base">🏦</span>
+            <span id="qa-lbl-add-wallet" class="text-[11px] font-bold text-white">+ Wallet</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pending Recurring Bill Due Reminder Pill -->
+      <div id="home-due-bills-banner" class="hidden glass-card rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2 border-indigo-500/30">
+        <span id="home-due-bills-text" class="text-xs font-bold text-indigo-200"></span>
+        <button onclick="switchTab('calendar')" class="px-3 py-1 rounded-full bg-indigo-500 hover:bg-indigo-400 text-white text-[11px] font-black shrink-0">View Bills →</button>
+      </div>
+
+      <!-- 4 Compact Summary KPI Tiles -->
       <div id="kpi-cards-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-2.5"></div>
 
-      <!-- INTERACTIVE VISUAL ANALYTICS: SPENDING DONUT, 6M CASHFLOW & EMERGENCY RUNWAY -->
-      <div id="analytics-visual-row" class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-        <!-- Card 1: Category Spend Donut Chart -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 id="lbl-chart-cat-title" class="text-xs sm:text-sm font-extrabold text-white">Category Spending Breakdown (本月支出分布)</h3>
-            <span id="badge-mom-delta" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">MoM: 0%</span>
-          </div>
-          <div id="chart-category-donut-wrap" class="flex flex-col sm:flex-row items-center gap-4"></div>
-        </div>
-
-        <!-- Card 2: Emergency Runway Health & 6-Month Cashflow Chart -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 id="lbl-chart-runway-title" class="text-xs sm:text-sm font-extrabold text-white">Financial Health & 6M Cashflow (紧急备用金与收支趋势)</h3>
-            <span id="badge-runway-grade" class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">0.0 Months</span>
-          </div>
-          <div id="chart-cashflow-bars-wrap" class="space-y-2.5"></div>
-        </div>
-      </div>
-
-      <!-- UNIVERSAL YIELD ENGINE LIVE DASHBOARD CARD -->
-      <div id="universal-yield-card" class="bg-gradient-to-br from-slate-900 to-slate-950 border border-teal-500/40 rounded-2xl p-4 shadow-xl space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
-            <h3 id="lbl-yield-card-title" class="text-xs sm:text-sm font-extrabold text-teal-300 uppercase tracking-wider">Universal Intelligent Yield Engine</h3>
-          </div>
-          <span class="px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[10px] font-bold">Live Accrual</span>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
-            <p id="lbl-yield-today" class="text-[11px] text-slate-400 font-medium">Today's Daily Return (今日预计收益)</p>
-            <p id="val-yield-today" class="text-base sm:text-lg font-black text-teal-300 mt-0.5">RM 0.00</p>
-          </div>
-          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
-            <p id="lbl-yield-month" class="text-[11px] text-slate-400 font-medium">Month Accrued (本月累计收益)</p>
-            <p id="val-yield-month" class="text-base sm:text-lg font-black text-emerald-400 mt-0.5">RM 0.00</p>
-          </div>
-          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
-            <p id="lbl-yield-ytd" class="text-[11px] text-slate-400 font-medium">YTD & Projected Annual (本年与年化)</p>
-            <p id="val-yield-ytd" class="text-base sm:text-lg font-black text-amber-300 mt-0.5">RM 0.00</p>
-          </div>
-        </div>
-        <div id="yield-accounts-badge-list" class="flex flex-wrap gap-1.5 pt-0.5"></div>
-      </div>
-
-
-      <!-- 4-Pillar Filter & Account List (Tap any account to edit balance!) -->
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-3.5">
+      <!-- My Wallets & Accounts Section (Immediately accessible on Home!) -->
+      <div class="glass-card rounded-3xl p-4 sm:p-5 space-y-3.5">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 id="pillars-section-title" class="text-sm font-extrabold text-white"></h2>
-            <p id="pillars-edit-hint" class="text-[11px] text-emerald-400 font-medium"></p>
+            <h2 id="pillars-section-title" class="text-sm sm:text-base font-extrabold text-white"></h2>
+            <p id="pillars-edit-hint" class="text-[11px] text-slate-400 font-medium"></p>
           </div>
-          <button onclick="openCreateAccountModal()" id="btn-add-custom-acc" class="tap-scale px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-extrabold text-xs shadow"></button>
+          <button onclick="openCreateAccountModal()" id="btn-add-custom-acc" class="tap-scale px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow"></button>
         </div>
 
         <div class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1" id="pillar-selector-tabs"></div>
         <div id="pillars-rollup-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
       </div>
 
-      <!-- Pending Split-Bill Reimbursements & LHDN Tax Relief Quick View -->
+      <!-- INTERACTIVE VISUAL ANALYTICS: SPENDING DONUT, 6M CASHFLOW & EMERGENCY RUNWAY -->
+      <div id="analytics-visual-row" class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+        <!-- Card 1: Category Spend Donut Chart -->
+        <div class="glass-card rounded-3xl p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="lbl-chart-cat-title" class="text-xs sm:text-sm font-extrabold text-white">Monthly Spending Breakdown</h3>
+            <span id="badge-mom-delta" class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-bold">MoM: 0%</span>
+          </div>
+          <div id="chart-category-donut-wrap" class="flex flex-col sm:flex-row items-center gap-4"></div>
+        </div>
+
+        <!-- Card 2: Emergency Runway Health & 6-Month Cashflow Chart -->
+        <div class="glass-card rounded-3xl p-4 sm:p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 id="lbl-chart-runway-title" class="text-xs sm:text-sm font-extrabold text-white">Financial Health & 6M Cashflow</h3>
+            <span id="badge-runway-grade" class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">0.0 Months</span>
+          </div>
+          <div id="chart-cashflow-bars-wrap" class="space-y-2.5"></div>
+        </div>
+      </div>
+
+      <!-- PASSIVE YIELD & SAVINGS EARNINGS CARD -->
+      <div id="universal-yield-card" class="glass-card rounded-3xl p-4 sm:p-5 space-y-3 border-teal-500/30">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
+            <h3 id="lbl-yield-card-title" class="text-xs sm:text-sm font-extrabold text-teal-300">Passive Interest & Dividend Tracker</h3>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 text-[10px] font-bold">Live Estimate</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="bg-slate-950/60 border border-white/[0.06] rounded-2xl p-3">
+            <p id="lbl-yield-today" class="text-[11px] text-slate-400 font-medium">Today's Earnings (今日收益)</p>
+            <p id="val-yield-today" class="text-base sm:text-lg font-black text-teal-300 mt-0.5">RM 0.00</p>
+          </div>
+          <div class="bg-slate-950/60 border border-white/[0.06] rounded-2xl p-3">
+            <p id="lbl-yield-month" class="text-[11px] text-slate-400 font-medium">This Month (本月累计)</p>
+            <p id="val-yield-month" class="text-base sm:text-lg font-black text-emerald-400 mt-0.5">RM 0.00</p>
+          </div>
+          <div class="bg-slate-950/60 border border-white/[0.06] rounded-2xl p-3">
+            <p id="lbl-yield-ytd" class="text-[11px] text-slate-400 font-medium">Year Estimate (全年预计)</p>
+            <p id="val-yield-ytd" class="text-base sm:text-lg font-black text-amber-300 mt-0.5">RM 0.00</p>
+          </div>
+        </div>
+        <div id="yield-accounts-badge-list" class="flex flex-wrap gap-1.5 pt-0.5"></div>
+      </div>
+
+      <!-- Friends Split Bills & LHDN Tax Relief Quick View -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="glass-card rounded-3xl p-4 sm:p-5">
           <h3 id="reimbursements-title" class="text-sm font-bold text-white mb-2.5"></h3>
           <div id="reimbursements-list" class="space-y-2"></div>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <div class="glass-card rounded-3xl p-4 sm:p-5">
           <h3 id="tax-view-title" class="text-sm font-bold text-white mb-2.5"></h3>
           <div id="tax-buckets-container" class="space-y-2.5"></div>
         </div>
@@ -717,11 +774,19 @@
         <button onclick="setNumpadMode('INSTALLMENT')" id="np-mode-installment" class="py-2 rounded-lg text-xs font-bold transition-all"></button>
       </div>
 
-      <!-- Amount Display Screen -->
-      <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 text-right">
-        <span id="np-mode-hint" class="text-[11px] text-slate-400 block"></span>
-        <div class="text-3xl font-black text-emerald-400 tracking-tight mt-0.5">
-          RM <span id="np-amount-display">50.00</span>
+      <!-- Amount Display Screen + 1-Tap Quick Amount Chips -->
+      <div class="bg-slate-950/90 border border-white/[0.08] rounded-2xl p-3 space-y-2">
+        <div class="text-right">
+          <span id="np-mode-hint" class="text-[11px] text-slate-400 block"></span>
+          <div class="text-3xl font-black text-emerald-400 tracking-tight mt-0.5">
+            RM <span id="np-amount-display">50.00</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5 pt-1">
+          <button type="button" onclick="setNumpadQuickAmount('10')" class="tap-scale py-1 rounded-full bg-white/[0.06] hover:bg-emerald-500/20 border border-white/[0.08] text-slate-200 font-bold text-[11px]">RM 10</button>
+          <button type="button" onclick="setNumpadQuickAmount('20')" class="tap-scale py-1 rounded-full bg-white/[0.06] hover:bg-emerald-500/20 border border-white/[0.08] text-slate-200 font-bold text-[11px]">RM 20</button>
+          <button type="button" onclick="setNumpadQuickAmount('50')" class="tap-scale py-1 rounded-full bg-white/[0.06] hover:bg-emerald-500/20 border border-white/[0.08] text-slate-200 font-bold text-[11px]">RM 50</button>
+          <button type="button" onclick="setNumpadQuickAmount('100')" class="tap-scale py-1 rounded-full bg-white/[0.06] hover:bg-emerald-500/20 border border-white/[0.08] text-slate-200 font-bold text-[11px]">RM 100</button>
         </div>
       </div>
 
@@ -750,28 +815,28 @@
   </div>
 
   <!-- NATIVE ANDROID / IOS STYLE BOTTOM NAVIGATION DOCK -->
-  <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-2 py-1.5">
+  <nav class="fixed bottom-0 inset-x-0 z-40 bg-[#070b14]/92 backdrop-blur-xl border-t border-white/[0.08] px-2 py-2">
     <div class="max-w-lg mx-auto grid grid-cols-5 items-center text-center gap-1">
-      <button onclick="switchTab('dashboard')" id="dock-dashboard" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
-        <span class="text-base">🏛️</span>
+      <button onclick="switchTab('dashboard')" id="dock-dashboard" class="tap-scale py-1 flex flex-col items-center justify-center rounded-2xl">
+        <span class="text-lg">🏠</span>
         <span id="dock-lbl-dashboard" class="text-[10px] font-bold mt-0.5"></span>
       </button>
-      <button onclick="switchTab('history')" id="dock-history" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
-        <span class="text-base">📜</span>
+      <button onclick="switchTab('history')" id="dock-history" class="tap-scale py-1 flex flex-col items-center justify-center rounded-2xl">
+        <span class="text-lg">📜</span>
         <span id="dock-lbl-history" class="text-[10px] font-bold mt-0.5"></span>
       </button>
       <!-- Center Floating + Quick Entry Button -->
       <div class="flex justify-center">
-        <button onclick="openNumpadModal()" class="tap-scale -mt-4 w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 text-slate-950 font-black text-2xl shadow-xl flex items-center justify-center border-2 border-slate-950">
+        <button onclick="openNumpadModal()" class="tap-scale -mt-5 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 via-teal-400 to-sky-400 text-slate-950 font-black text-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center border-4 border-[#070b14]">
           +
         </button>
       </div>
-      <button onclick="switchTab('installments')" id="dock-installments" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
-        <span class="text-base">💳</span>
+      <button onclick="switchTab('installments')" id="dock-installments" class="tap-scale py-1 flex flex-col items-center justify-center rounded-2xl">
+        <span class="text-lg">💳</span>
         <span id="dock-lbl-installments" class="text-[10px] font-bold mt-0.5"></span>
       </button>
-      <button onclick="switchTab('asnb')" id="dock-asnb" class="tap-scale py-1 flex flex-col items-center justify-center rounded-xl">
-        <span class="text-base">📈</span>
+      <button onclick="switchTab('asnb')" id="dock-asnb" class="tap-scale py-1 flex flex-col items-center justify-center rounded-2xl">
+        <span class="text-lg">📈</span>
         <span id="dock-lbl-asnb" class="text-[10px] font-bold mt-0.5"></span>
       </button>
     </div>
@@ -780,160 +845,160 @@
   <script>
     const I18N = {
       en: {
-        appTitle: "MyPFM Bilingual Wealth & Ledger",
-        appSubtitle: "Tap any account card to edit balance, floor & envelopes",
+        appTitle: "MyPFM",
+        appSubtitle: "Smart Personal Finance & Money Tracker",
         alertBell: "Alerts",
         dock: {
-          dashboard: "Accounts",
-          history: "History",
-          envelopes: "Envelopes",
+          dashboard: "Home",
+          history: "Activity",
+          envelopes: "Savings",
           installments: "SPayLater",
-          asnb: "ASNB Yield"
+          asnb: "Wealth"
         },
         tabs: {
-          dashboard: "4-Pillar Accounts",
-          history: "📜 Tx History",
-          categories: "Category Budgets",
-          calendar: "30-Day Calendar",
-          envelopes: "Virtual Envelopes",
-          installments: "SPayLater & DSR",
-          asnb: "ASNB Projector",
-          alerts: "Alert Center",
-          backup: "💾 Backup & DB"
+          dashboard: "🏠 Home",
+          history: "📜 Activity",
+          categories: "🎯 Budgets",
+          calendar: "📅 Bills & Pay",
+          envelopes: "🧺 Envelopes",
+          installments: "💳 SPayLater",
+          asnb: "📈 Wealth & ASNB",
+          alerts: "🔔 Reminders",
+          backup: "⚙️ Settings"
         },
-        pillarsSectionTitle: "4-Pillar Accounts & Direct Balance Editor",
-        pillarsEditHint: "👉 Tap 'Edit Balance' on any Bank, TNG eWallet, SPayLater or ASNB card to adjust balances",
-        pillarFilterAll: "All 4 Pillars",
-        addCustomAcc: "+ New Account",
-        editBtnLabel: "✎ Edit Balance",
-        netWorth: "Total Net Worth",
-        safeToSpend: "Unrestricted Safe-to-Spend",
-        lockedEnvelopes: "Locked in Envelopes",
-        monthlyExpense: "Current Month Spend",
-        reimbursementsTitle: "Pending Split-Bill Reimbursements (Friends Owe)",
-        taxTitle: "LHDN Annual Tax Relief Progress (YA 2026)",
-        catTitle: "Category Roll-Up Summaries & Daily Velocity Caps",
-        catSubtitle: "Combines direct PersonalAmount expenses + current month's amortized InstallmentSchedule slices. Excludes all Transfers & Split-Bill friend receivables.",
-        calTitle: "30-Day Cashflow Projection Calendar",
-        calSubtitle: "Forecasts daily liquid balances, upcoming auto-debits, SPayLater installment slices, and salary inflows over the next 30 days.",
-        envTitle: "Virtual Envelopes (Sinking Funds Inside Bank Accounts)",
-        envFormula: "SafeToSpend = CurrentBalance - MinBalanceLimit - Sum(VirtualEnvelopes) - Sum(UpcomingAutoDebits)",
-        instTitle: "Installment Schedule Generator (SPayLater / Credit Card EPP / Loans)",
-        instSubtitle: "Logging an RM 150 3-month purchase immediately increases SPayLater liability by RM 150, while only counting RM 50/month in the monthly budget.",
-        createSpayLaterBtn: "+ Log RM 150 SPayLater (3M)",
-        asnbTitle: "ASNB Minimum Monthly Balance Dividend Projector & Daily Compounding",
-        asnbFormula: "MonthlyDividend = (LowestMonthlyBalance [Day 1..End] × (AnnualRate / 100)) / 12",
-        simAsnbAfter1st: "Simulate +RM 1,000 After 1st",
-        alertsCenterTitle: "Alert Notification Center (EN & 中文)",
-        alertsCenterSubtitle: "Real-time evaluation of Rule A (Static Floor), Rule B (Auto-Debit Look-Ahead + Donor Matcher), Rule C (Month-End Idle Cash Sweeper), and ASNB Timing Tips.",
-        simTng: "Rule A: TNG < RM 10",
-        simAutoDebit: "Rule B: Bank A Shortfall",
-        simReset: "Reset Demo Defaults",
-        backupTitle: "Standalone IndexedDB Storage & JSON Backup / Restore",
-        backupSubtitle: "Runs 100% locally on your Android phone (even when PC is off). Code updates via Git/PWA or Capacitor APK never wipe your IndexedDB data.",
-        backupExportTitle: "Export Full Financial Data (.JSON)",
-        backupExportDesc: "Download or copy a complete snapshot of your 4-Pillar Accounts, Double-Entry Transactions, ASNB Minimum Monthly Balances, and SPayLater Installments.",
-        btnDownloadJson: "⬇ Download JSON Backup",
-        btnCopyJson: "📋 Copy JSON",
-        backupImportTitle: "Restore from JSON Backup & Check Updates",
-        backupImportDesc: "Select a previously exported MyPFM .json file to restore all balances and schedules immediately onto this device.",
-        btnUploadJson: "⬆ Restore from .JSON File",
-        btnCheckUpdate: "🔄 Check for Code Update",
-        txHistoryTitle: "Local Double-Entry Ledger Audit Log (IndexedDB)",
-        numpadTitle: "Quick Expense / Transfer / Installment",
-        npExpense: "1. Expense",
-        npTransfer: "2. Transfer",
-        npInstallment: "3. SPayLater",
-        npSubmit: "Confirm & Update Account Balance",
-        editModalTitle: "Edit Account Balance & Settings",
+        pillarsSectionTitle: "My Accounts & Wallets",
+        pillarsEditHint: "Tap any account to update balance, floor limit, or view its history",
+        pillarFilterAll: "All Accounts",
+        addCustomAcc: "+ Add Wallet",
+        editBtnLabel: "✎ Edit",
+        netWorth: "Net Worth",
+        safeToSpend: "Safe to Spend",
+        lockedEnvelopes: "Savings Jars",
+        monthlyExpense: "Spent This Month",
+        reimbursementsTitle: "Friends Owe You (Split Bills)",
+        taxTitle: "LHDN Tax Relief Tracker (YA 2026)",
+        catTitle: "Monthly Spending Budgets",
+        catSubtitle: "Track your monthly spending and installments against your budget limits.",
+        calTitle: "30-Day Money Flow & Bills",
+        calSubtitle: "See your upcoming bills, SPayLater installments, and expected salary over the next 30 days.",
+        envTitle: "Savings Envelopes (Set Aside Inside Your Bank)",
+        envFormula: "Safe to Spend = Balance - Min Floor - Savings Envelopes - Upcoming Bills",
+        instTitle: "Installments & SPayLater",
+        instSubtitle: "Spread purchases over monthly payments and track what you owe each month.",
+        createSpayLaterBtn: "+ New Installment",
+        asnbTitle: "ASNB Dividend & Interest Estimator",
+        asnbFormula: "Monthly Dividend = Lowest Balance (1st to Month-End) × Rate ÷ 12",
+        simAsnbAfter1st: "Simulate +RM 1,000 Deposit",
+        alertsCenterTitle: "Smart Reminders & Insights",
+        alertsCenterSubtitle: "Helpful alerts when a wallet runs low, an auto-debit is due soon, or idle cash can earn more in ASNB.",
+        simTng: "Test Low TNG (< RM 10)",
+        simAutoDebit: "Test Upcoming Bill Alert",
+        simReset: "Load Demo Data",
+        backupTitle: "Settings, Auto-Track & Data Backup",
+        backupSubtitle: "Your data stays 100% private on this phone — even completely offline.",
+        backupExportTitle: "Export Data Backup (.JSON)",
+        backupExportDesc: "Save a backup copy of all your accounts, history, and installment plans anytime.",
+        btnDownloadJson: "⬇ Save Backup File",
+        btnCopyJson: "📋 Copy Data",
+        backupImportTitle: "Restore Backup & Updates",
+        backupImportDesc: "Pick a saved MyPFM .json backup file to restore your wallet anytime.",
+        btnUploadJson: "⬆ Restore from File",
+        btnCheckUpdate: "🔄 Check Update",
+        txHistoryTitle: "Recent Activity",
+        numpadTitle: "Quick Record",
+        npExpense: "💸 Spend",
+        npTransfer: "⇄ Transfer",
+        npInstallment: "💳 Installment",
+        npSubmit: "Review & Save",
+        editModalTitle: "Edit Account",
         lblEditNameEn: "Account Name (English)",
-        lblEditNameZh: "Account Name (中文名称)",
+        lblEditNameZh: "Account Name (中文)",
         lblEditBalance: "Current Balance (RM)",
-        lblEditFloor: "Min Floor Alert (RM)",
+        lblEditFloor: "Low Balance Alert (RM)",
         lblEditLowestBal: "ASNB Lowest Monthly Bal (RM)",
-        lblEditRate: "Annual Yield Rate (% p.a.)",
-        lblEditEnvHeader: "Virtual Envelopes (Locked Sinking Funds)",
+        lblEditRate: "Interest / Dividend Rate (% p.a.)",
+        lblEditEnvHeader: "Savings Envelopes (Locked Funds)",
         btnAddEnvModal: "+ Add Envelope",
-        btnDeleteAcc: "Delete",
-        btnSaveEditAcc: "Save Balance & Recalculate"
+        btnDeleteAcc: "Delete Account",
+        btnSaveEditAcc: "Save Changes"
       },
       "zh-CN": {
-        appTitle: "MyPFM 双语个人财务与复式记账",
-        appSubtitle: "点击任意账户卡片即可直接修改余额、最低限额与储蓄信封",
-        alertBell: "预警",
+        appTitle: "MyPFM 个人理财",
+        appSubtitle: "轻松管理银行卡、电子钱包与日常收支",
+        alertBell: "提醒",
         dock: {
-          dashboard: "账户总览",
-          history: "交易历史",
-          envelopes: "储蓄信封",
-          installments: "分期/DSR",
-          asnb: "ASNB分红"
+          dashboard: "首页",
+          history: "账单明细",
+          envelopes: "心愿储蓄",
+          installments: "分期账单",
+          asnb: "生息理财"
         },
         tabs: {
-          dashboard: "四大支柱账户",
-          history: "📜 交易历史明细",
-          categories: "消费分类预算",
-          calendar: "30天现金流日历",
-          envelopes: "专属储蓄信封",
-          installments: "SPayLater分期",
-          asnb: "ASNB分红计算",
-          alerts: "智能预警中心",
-          backup: "💾 备份与数据库"
+          dashboard: "🏠 首页总览",
+          history: "📜 账单明细",
+          categories: "🎯 消费预算",
+          calendar: "📅 账单与发薪",
+          envelopes: "🧺 储蓄信封",
+          installments: "💳 分期付款",
+          asnb: "📈 利息与ASNB",
+          alerts: "🔔 智能提醒",
+          backup: "⚙️ 设置与备份"
         },
-        pillarsSectionTitle: "四大支柱账户与余额直接编辑器",
-        pillarsEditHint: "👉 点击任意银行、TnG电子钱包、SPayLater 或 ASNB 卡片上的【修改余额】即可自定义金额",
-        pillarFilterAll: "全部四大支柱",
-        addCustomAcc: "+ 新增账户",
-        editBtnLabel: "✎ 修改余额",
-        netWorth: "个人净资产总额",
-        safeToSpend: "可自由支配安全余额",
-        lockedEnvelopes: "储蓄信封已锁定总额",
-        monthlyExpense: "本月个人实际支出",
-        reimbursementsTitle: "待收回朋友 AA 分账款项 (不虚增个人支出)",
-        taxTitle: "马来西亚 LHDN 年度税务减免进度 (2026 税年)",
-        catTitle: "消费分类汇总视图与超速每日限额建议",
-        catSubtitle: "自动汇总本月个人直接消费 (PersonalAmount) 与当月应还分期切片 (InstallmentSchedule)，严格剔除转账本金与朋友分账代垫款。",
-        calTitle: "未来 30 天现金流日历预测",
-        calSubtitle: "按日推演未来30天自动扣款、SPayLater 分期还款日、预计薪资入账日及每日可自由支配安全余额。",
-        envTitle: "专属储蓄信封（在物理银行账户内锁定专项储备金）",
-        envFormula: "可自由支配余额 = 当前余额 - 最低安全限额 - 储蓄信封锁定总额 - 近期自动扣款预留",
-        instTitle: "分期付款计划生成器 (SPayLater 3期 / 信用卡分期 / 贷款)",
-        instSubtitle: "创建 RM 150 的 3期分期消费立即增加 RM 150 总负债，但当月现金流预算仅计入 RM 50/月。",
-        createSpayLaterBtn: "+ 新增 RM 150 SPayLater (3期)",
-        asnbTitle: "ASNB 每月最低余额分红预测器与每日复利引擎",
-        asnbFormula: "当月分红 = (每月1日至月末最低余额 × (年化分红率 / 100)) / 12",
-        simAsnbAfter1st: "模拟1日后存入 RM 1,000",
-        alertsCenterTitle: "智能财务健康预警通知中心 (中英双语)",
-        alertsCenterSubtitle: "实时检测：规则 A (最低限额预警)、规则 B (自动扣款前瞻与富余账户配对建议)、规则 C (月末零息闲置资金扫入 ASNB)。",
-        simTng: "测试规则 A：TNG < RM 10",
-        simAutoDebit: "测试规则 B：银行 A 不足",
-        simReset: "重置默认演示数据",
-        backupTitle: "手机本地 IndexedDB 数据库与 JSON 备份/恢复中心",
-        backupSubtitle: "100% 手机端独立离线运行（关闭电脑与 VS Code 后完全正常使用）。更新代码或覆盖安装 APK 绝不丢失任何账本数据。",
-        backupExportTitle: "导出完整财务数据备份 (.JSON)",
-        backupExportDesc: "一键下载或复制您的四大支柱账户、复式记账流水、ASNB 每月最低余额快照及 SPayLater 分期计划。",
-        btnDownloadJson: "⬇ 下载 JSON 备份文件",
-        btnCopyJson: "📋 复制 JSON 数据",
-        backupImportTitle: "从 JSON 备份文件恢复数据 & 检查代码更新",
-        backupImportDesc: "选择之前导出的 MyPFM .json 备份文件，即可在手机上瞬间恢复所有账户余额与历史流水。",
-        btnUploadJson: "⬆ 选择 .JSON 文件恢复",
-        btnCheckUpdate: "🔄 检查最新代码更新",
-        txHistoryTitle: "本地复式记账流水审计日志 (IndexedDB)",
-        numpadTitle: "三步数字键盘极速记账 (支出 / 转账 / 分期)",
-        npExpense: "1. 记支出",
-        npTransfer: "2. 记转账",
-        npInstallment: "3. 分期消费",
-        npSubmit: "确认并自动更新账户余额",
-        editModalTitle: "修改账户余额与限额参数",
-        lblEditNameEn: "账户英文名称 (English Name)",
-        lblEditNameZh: "账户中文名称 (中文名称)",
-        lblEditBalance: "当前账户余额 (RM)",
-        lblEditFloor: "最低安全限额预警 (RM)",
+        pillarsSectionTitle: "我的账户与钱包",
+        pillarsEditHint: "点击任意卡片即可调整余额、查看明细或设置提醒下限",
+        pillarFilterAll: "全部账户",
+        addCustomAcc: "+ 添加账户",
+        editBtnLabel: "✎ 管理",
+        netWorth: "净资产总额",
+        safeToSpend: "可放心花用",
+        lockedEnvelopes: "已存心愿储蓄",
+        monthlyExpense: "本月总支出",
+        reimbursementsTitle: "朋友待还 AA 款项",
+        taxTitle: "LHDN 年度税务减免进度 (2026)",
+        catTitle: "每月消费预算管理",
+        catSubtitle: "清晰查看各分类的本月实际消费与预算进度，避免超支。",
+        calTitle: "未来 30 天收支日历",
+        calSubtitle: "提前预览未来 30 天的固定扣款、分期账单与发薪日余额变化。",
+        envTitle: "专属储蓄信封（从日常消费中隔离的备用金）",
+        envFormula: "可花余额 = 账户余额 - 最低保留额 - 储蓄信封 - 近期扣款预留",
+        instTitle: "分期付款与 SPayLater 管理",
+        instSubtitle: "按月拆解每一笔分期消费与每月固定还款计划，不错过任何账单。",
+        createSpayLaterBtn: "+ 新增分期",
+        asnbTitle: "ASNB 分红与每日生息预测",
+        asnbFormula: "当月分红 = (1日至月末最低余额 × 年利率) ÷ 12",
+        simAsnbAfter1st: "模拟转入 RM 1,000",
+        alertsCenterTitle: "贴心财务提醒中心",
+        alertsCenterSubtitle: "余额过低、即将自动扣款或有闲置资金可赚更高利息时及时提醒您。",
+        simTng: "演示 TNG 余额不足",
+        simAutoDebit: "演示扣款余额预警",
+        simReset: "加载演示数据",
+        backupTitle: "系统设置、自动记账与数据备份",
+        backupSubtitle: "所有财务数据 100% 存储在您手机本地，完全离线且保护隐私。",
+        backupExportTitle: "导出备份文件 (.JSON)",
+        backupExportDesc: "随时导出保存一份完整账本与账户备份，换机无忧。",
+        btnDownloadJson: "⬇ 导出备份文件",
+        btnCopyJson: "📋 复制备份",
+        backupImportTitle: "恢复备份与版本检查",
+        backupImportDesc: "选择之前导出的 .json 备份文件即可一键恢复全部数据。",
+        btnUploadJson: "⬆ 从文件恢复",
+        btnCheckUpdate: "🔄 检查更新",
+        txHistoryTitle: "最近流水记录",
+        numpadTitle: "快速记一笔",
+        npExpense: "💸 支出",
+        npTransfer: "⇄ 转账",
+        npInstallment: "💳 分期",
+        npSubmit: "确认并保存",
+        editModalTitle: "管理账户与余额",
+        lblEditNameEn: "英文名称 (English)",
+        lblEditNameZh: "中文名称",
+        lblEditBalance: "当前余额 (RM)",
+        lblEditFloor: "低余额提醒下限 (RM)",
         lblEditLowestBal: "ASNB 本月最低余额 (RM)",
-        lblEditRate: "年化分红/利息率 (% p.a.)",
-        lblEditEnvHeader: "账户内专属储蓄信封 (锁定储备金)",
-        btnAddEnvModal: "+ 新增信封",
+        lblEditRate: "年化收益率 (% p.a.)",
+        lblEditEnvHeader: "专属储蓄信封",
+        btnAddEnvModal: "+ 添加信封",
         btnDeleteAcc: "删除账户",
-        btnSaveEditAcc: "保存余额并重新计算"
+        btnSaveEditAcc: "保存修改"
       }
     };
 
@@ -1428,6 +1493,23 @@
       document.getElementById('numpad-modal').classList.remove('hidden');
       renderNumpadModal();
     }
+    function openNumpadWithMode(mode) {
+      state.numpadMode = mode || 'EXPENSE';
+      if (state.numpadMode === 'INSTALLMENT') state.numpadRaw = '150.00';
+      openNumpadModal();
+    }
+    function setNumpadQuickAmount(val) {
+      state.numpadRaw = Number(val).toFixed(2);
+      const disp = document.getElementById('np-amount-display');
+      if (disp) disp.textContent = state.numpadRaw;
+    }
+    function toggleNumpadExtras() {
+      const panel = document.getElementById('np-extras-panel');
+      const chev = document.getElementById('np-extras-chevron');
+      if (!panel) return;
+      panel.classList.toggle('hidden');
+      if (chev) chev.textContent = panel.classList.contains('hidden') ? '▾' : '▴';
+    }
     function closeNumpadModal() {
       document.getElementById('numpad-modal').classList.add('hidden');
     }
@@ -1748,36 +1830,44 @@
               </select>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <div>
-              <label class="text-[11px] text-sky-300 block mb-1">${loc('Envelope (Optional):', '储蓄信封 (可选):')}</label>
-              <select id="np-sel-env" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-sky-300 font-semibold text-xs">
-                <option value="">${loc('-- None (Safe-to-Spend) --', '-- 不使用信封 --')}</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-[11px] text-teal-300 block mb-1">${loc('LHDN Tax Relief:', 'LHDN 税务减免:')}</label>
-              <select id="np-sel-tax" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-teal-300 font-semibold text-xs">
-                <option value="">${loc('-- None --', '-- 无 --')}</option>
-                <option value="LHDN_LIFESTYLE">${loc('Lifestyle (RM 2.5k)', '生活方式 (2.5k)')}</option>
-                <option value="LHDN_SPORTS">${loc('Sports / Gym (RM 1k)', '体育健身 (1k)')}</option>
-                <option value="LHDN_MEDICAL">${loc('Medical (RM 10k)', '医疗体检 (10k)')}</option>
-              </select>
-            </div>
-          </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-2">
-            <label class="flex items-center justify-between cursor-pointer text-[11px] font-bold text-amber-300">
-              <span>🤝 ${loc('Split Bill / Friend Reimbursement (AA)', '朋友 AA 分账 / 代垫款项')}</span>
-              <input id="np-chk-split" type="checkbox" onchange="toggleNumpadSplitFields()" class="rounded accent-emerald-500" />
-            </label>
-            <div id="np-split-fields" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
-              <div>
-                <label class="text-[10px] text-slate-400 block mb-0.5">${loc('My Personal Share (RM):', '我个人实际承担 (RM):')}</label>
-                <input id="np-inp-personal-amt" type="number" step="0.01" min="0" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs" />
+          <div class="pt-1">
+            <button type="button" onclick="toggleNumpadExtras()" class="w-full px-3 py-2 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-white/[0.07] flex items-center justify-between text-[11px] font-bold text-slate-300 transition-colors">
+              <span>✨ ${loc('More options: Envelope, Tax Relief & Split Bill', '更多选项：储蓄信封、税务减免与 AA 分账')}</span>
+              <span id="np-extras-chevron" class="text-slate-400">▾</span>
+            </button>
+            <div id="np-extras-panel" class="hidden mt-2 space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-[11px] text-sky-300 block mb-1">${loc('Envelope (Optional):', '储蓄信封 (可选):')}</label>
+                  <select id="np-sel-env" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-sky-300 font-semibold text-xs">
+                    <option value="">${loc('-- None (Safe-to-Spend) --', '-- 不使用信封 --')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-[11px] text-teal-300 block mb-1">${loc('LHDN Tax Relief:', 'LHDN 税务减免:')}</label>
+                  <select id="np-sel-tax" class="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-teal-300 font-semibold text-xs">
+                    <option value="">${loc('-- None --', '-- 无 --')}</option>
+                    <option value="LHDN_LIFESTYLE">${loc('Lifestyle (RM 2.5k)', '生活方式 (2.5k)')}</option>
+                    <option value="LHDN_SPORTS">${loc('Sports / Gym (RM 1k)', '体育健身 (1k)')}</option>
+                    <option value="LHDN_MEDICAL">${loc('Medical (RM 10k)', '医疗体检 (10k)')}</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label class="text-[10px] text-slate-400 block mb-0.5">${loc('Friend Name:', '朋友姓名:')}</label>
-                <input id="np-inp-debtor-name" type="text" placeholder="${loc('e.g. Ali / Sarah', '例如：小明 / Ali')}" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+              <div class="bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-2">
+                <label class="flex items-center justify-between cursor-pointer text-[11px] font-bold text-amber-300">
+                  <span>🤝 ${loc('Split Bill / Friend Reimbursement (AA)', '朋友 AA 分账 / 代垫款项')}</span>
+                  <input id="np-chk-split" type="checkbox" onchange="toggleNumpadSplitFields()" class="rounded accent-emerald-500" />
+                </label>
+                <div id="np-split-fields" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+                  <div>
+                    <label class="text-[10px] text-slate-400 block mb-0.5">${loc('My Personal Share (RM):', '我个人实际承担 (RM):')}</label>
+                    <input id="np-inp-personal-amt" type="number" step="0.01" min="0" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-emerald-500/40 text-emerald-300 font-bold text-xs" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-slate-400 block mb-0.5">${loc('Friend Name:', '朋友姓名:')}</label>
+                    <input id="np-inp-debtor-name" type="text" placeholder="${loc('e.g. Ali / Sarah', '例如：小明 / Ali')}" class="w-full px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2210,8 +2300,8 @@
       if (privIcon && privBtn) {
         privIcon.textContent = state.privacyMode ? '🙈' : '👁️';
         privBtn.className = state.privacyMode
-          ? 'tap-scale px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-bold flex items-center gap-1'
-          : 'tap-scale px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center gap-1';
+          ? 'tap-scale w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center justify-center'
+          : 'tap-scale w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-xs font-bold flex items-center justify-center';
       }
 
       document.getElementById('dock-lbl-dashboard').textContent = dict.dock.dashboard;
@@ -2226,25 +2316,28 @@
         const el = document.getElementById('dock-' + d);
         if (el) {
           el.className = state.activeTab === d
-            ? 'tap-scale py-1 flex flex-col items-center justify-center rounded-xl text-emerald-400'
-            : 'tap-scale py-1 flex flex-col items-center justify-center rounded-xl text-slate-400 hover:text-white';
+            ? 'tap-scale py-1.5 flex flex-col items-center justify-center rounded-xl text-emerald-400'
+            : 'tap-scale py-1.5 flex flex-col items-center justify-center rounded-xl text-slate-400 hover:text-white';
         }
       });
 
       document.getElementById('btn-lang-en').className = state.lang === 'en'
-        ? 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
-        : 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white';
+        ? 'px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500 text-slate-950 shadow'
+        : 'px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-300 hover:text-white';
       document.getElementById('btn-lang-zh').className = state.lang === 'zh-CN'
-        ? 'px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 shadow'
-        : 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-300 hover:text-white';
+        ? 'px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-500 text-slate-950 shadow'
+        : 'px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-300 hover:text-white';
+
+      const backupBtnEl = document.getElementById('lbl-backup-btn');
+      if (backupBtnEl) backupBtnEl.textContent = loc('Settings', '设置');
 
       ['dashboard', 'history', 'categories', 'calendar', 'envelopes', 'installments', 'asnb', 'alerts', 'backup'].forEach(t => {
         const btn = document.getElementById('tab-btn-' + t);
         if (!btn) return;
         btn.textContent = dict.tabs[t];
         btn.className = state.activeTab === t
-          ? 'px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap bg-emerald-500 text-slate-950 shadow'
-          : 'px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800/80 text-slate-300 hover:bg-slate-800';
+          ? 'px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap bg-emerald-500 text-slate-950 shadow shadow-emerald-500/20'
+          : 'px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-white/[0.04] border border-white/[0.06] text-slate-300 hover:bg-white/[0.08]';
       });
 
       const alerts = evaluateLocalizedAlerts();
@@ -2310,23 +2403,62 @@
         if (repayBtn) repayBtn.textContent = loc('Pay This Month (' + fmtRM(dueInfo.totalDue) + ')', '支付本期 (' + fmtRM(dueInfo.totalDue) + ')');
       }
       
+      // Populate Consumer Hero Balance Card & Quick Actions
+      const heroSafeEl = document.getElementById('val-hero-safe');
+      if (heroSafeEl) {
+        const greetEl = document.getElementById('lbl-hero-greeting');
+        if (greetEl) greetEl.textContent = dict.heroGreeting || loc('Available to Spend', '本月安全可支配余额');
+        heroSafeEl.textContent = fmtRM(totalSafeToSpend);
+        const subEl = document.getElementById('lbl-hero-sub');
+        if (subEl) subEl.textContent = `${loc('Total Cash & Wallets:', '现金与钱包总计:')} ${fmtRM(totalLiquid)} • ${loc('Goal Savings:', '存钱罐储备:')} ${fmtRM(totalLockedEnv)}`;
+        const nwLblEl = document.getElementById('lbl-hero-networth');
+        if (nwLblEl) nwLblEl.textContent = dict.netWorth;
+        const nwValEl = document.getElementById('val-hero-networth');
+        if (nwValEl) nwValEl.textContent = fmtRM(netWorth);
+        const qaSpend = document.getElementById('qa-lbl-spend');
+        const qaInc = document.getElementById('qa-lbl-income');
+        const qaTrf = document.getElementById('qa-lbl-transfer');
+        const qaAdd = document.getElementById('qa-lbl-add-wallet');
+        if (qaSpend) qaSpend.textContent = dict.qaSpend || loc('Spend', '记支出');
+        if (qaInc) qaInc.textContent = dict.qaIncome || loc('Income', '记收入');
+        if (qaTrf) qaTrf.textContent = dict.qaTransfer || loc('Transfer', '转账');
+        if (qaAdd) qaAdd.textContent = dict.qaAddWallet || loc('Add Account', '加账户');
+      }
+
+      // Upcoming Bills Banner on Home
+      const dueBannerEl = document.getElementById('home-due-bills-banner');
+      const dueBannerTextEl = document.getElementById('home-due-bills-text');
+      if (dueBannerEl && dueBannerTextEl) {
+        const unpostedBills = (state.recurringBills || []).filter(b => b.active !== false && b.lastPostedYm !== curYm && b.type !== 'INCOME');
+        const billsSum = unpostedBills.reduce((s, b) => s + (Number(b.amount) || 0), 0);
+        if (unpostedBills.length > 0) {
+          dueBannerEl.classList.remove('hidden');
+          dueBannerTextEl.textContent = loc(
+            `${unpostedBills.length} bill(s) pending this month (${fmtRM(billsSum)}) — Tap to review & post`,
+            `本月还有 ${unpostedBills.length} 笔账单待入账（共 ${fmtRM(billsSum)}）— 点击查看`
+          );
+        } else {
+          dueBannerEl.classList.add('hidden');
+        }
+      }
+
       document.getElementById('kpi-cards-grid').innerHTML = `
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+        <div class="glass-card rounded-2xl p-3.5">
           <p class="text-[11px] text-slate-400">${dict.netWorth}</p>
           <p class="text-base sm:text-xl font-black text-white mt-0.5">${fmtRM(netWorth)}</p>
-          <p class="text-[10px] text-emerald-400 mt-0.5">${loc('Assets - Liabilities', '总资产 - 总负债')}</p>
+          <p class="text-[10px] text-emerald-400 mt-0.5">${loc('Total Assets - Debt', '总资产减总负债')}</p>
         </div>
-        <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-3.5">
+        <div class="glass-card border-emerald-500/30 rounded-2xl p-3.5">
           <p class="text-[11px] text-emerald-300 font-semibold">${dict.safeToSpend}</p>
           <p class="text-base sm:text-xl font-black text-emerald-400 mt-0.5">${fmtRM(totalSafeToSpend)}</p>
-          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Liquid:', '账面流动:')} ${fmtRM(totalLiquid)}</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Wallets:', '活期总额:')} ${fmtRM(totalLiquid)}</p>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+        <div class="glass-card rounded-2xl p-3.5">
           <p class="text-[11px] text-slate-400">${dict.lockedEnvelopes}</p>
           <p class="text-base sm:text-xl font-black text-sky-400 mt-0.5">${fmtRM(totalLockedEnv)}</p>
-          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Sinking Funds', '专项储蓄信封')}</p>
+          <p class="text-[10px] text-slate-400 mt-0.5">${loc('Goal Savings', '专项存钱罐')}</p>
         </div>
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5">
+        <div class="glass-card rounded-2xl p-3.5">
           <p class="text-[11px] text-slate-400">${dict.monthlyExpense}</p>
           <p class="text-base sm:text-xl font-black text-amber-300 mt-0.5">${fmtRM(totalMonthlyPersonalSpend)}</p>
           <p class="text-[10px] text-slate-400 mt-0.5">${loc(`+${fmtRM(monthlyInstCommitment)} SPayLater`, `含分期 ${fmtRM(monthlyInstCommitment)}`)}</p>
@@ -2449,52 +2581,54 @@
       document.getElementById('pillars-edit-hint').textContent = dict.pillarsEditHint;
       document.getElementById('btn-add-custom-acc').textContent = dict.addCustomAcc;
 
-      // Render 4-Pillar Filter Selector Tabs
+      // Render 4-Pillar Account Groups (Consumer-Friendly Labels)
       const pillarMeta = [
-        { key: 'ASSET_LIQUID', en: '1. Liquid Assets', zh: '1. 流动资产', badge: 'text-emerald-400' },
-        { key: 'ASSET_INVESTMENT', en: '2. Investments', zh: '2. 投资资产', badge: 'text-teal-400' },
-        { key: 'LIABILITY', en: '3. Liabilities & BNPL', zh: '3. 负债与分期', badge: 'text-rose-400' },
-        { key: 'INCOME_SOURCE', en: '4. Income Sources', zh: '4. 收入来源', badge: 'text-indigo-400' }
+        { key: 'ASSET_LIQUID', en: '🏦 Bank & eWallets', zh: '🏦 银行卡与电子钱包', badge: 'text-emerald-400' },
+        { key: 'ASSET_INVESTMENT', en: '📈 Savings & Investments', zh: '📈 理财与投资账户', badge: 'text-teal-400' },
+        { key: 'LIABILITY', en: '💳 BNPL & Credit', zh: '💳 分期与信用卡', badge: 'text-rose-400' },
+        { key: 'INCOME_SOURCE', en: '💼 Salary & Income', zh: '💼 工资与收入来源', badge: 'text-indigo-400' }
       ];
 
       document.getElementById('pillar-selector-tabs').innerHTML = [
         { key: 'ALL', label: dict.pillarFilterAll },
         ...pillarMeta.map(p => ({ key: p.key, label: loc(p.en, p.zh) }))
       ].map(tab => `
-        <button onclick="setPillarFilter('${tab.key}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${state.selectedPillarFilter === tab.key ? 'bg-white text-slate-950 shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+        <button onclick="setPillarFilter('${tab.key}')" class="px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${state.selectedPillarFilter === tab.key ? 'bg-white text-slate-950 shadow' : 'bg-white/[0.05] border border-white/[0.07] text-slate-300 hover:bg-white/[0.1]'}">
           ${tab.label}
         </button>
       `).join('');
 
       const visiblePillars = state.selectedPillarFilter === 'ALL'
-        ? pillarMeta
+        ? pillarMeta.filter(p => p.key !== 'INCOME_SOURCE' || state.accounts.some(a => a.pillar === 'INCOME_SOURCE'))
         : pillarMeta.filter(p => p.key === state.selectedPillarFilter);
 
       document.getElementById('pillars-rollup-grid').innerHTML = visiblePillars.map(p => {
         const accs = state.accounts.filter(a => a.pillar === p.key);
         const pillarSum = accs.reduce((s, a) => s + a.currentBalance, 0);
         return `
-          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="glass-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
               <h3 class="text-xs sm:text-sm font-bold ${p.badge}">${loc(p.en, p.zh)}</h3>
               <span class="text-sm sm:text-base font-black text-white">${fmtRM(pillarSum)}</span>
             </div>
             <div class="space-y-2">
-              ${accs.map(a => `
-                <div onclick="openEditAccountModal('${a.id}')" class="tap-scale cursor-pointer bg-slate-900 hover:bg-slate-800/90 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-all">
+              ${accs.length === 0
+                ? `<p class="text-xs text-slate-500 italic py-1">${loc('No accounts added here yet.', '暂未添加此类账户。')}</p>`
+                : accs.map(a => `
+                <div onclick="openEditAccountModal('${a.id}')" class="tap-scale cursor-pointer bg-slate-950/60 hover:bg-slate-900/90 border border-white/[0.06] hover:border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between gap-2 transition-all">
                   <div class="min-w-0">
-                    <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">${loc(a.subTypeEn, a.subTypeZh)}</span>
-                    <p class="text-xs font-bold text-white mt-1 truncate">${loc(a.nameEn, a.nameZh)}</p>
-                    ${a.pillar === 'ASSET_LIQUID' ? `<p class="text-[11px] text-emerald-400">${loc('Safe:', '可用:')} ${fmtRM(calcSafeToSpend(a))} • ${loc('Floor:', '底线:')} ${fmtRM(a.minBalanceLimit)}</p>` : ''}
-                    ${(a.interestMethod === 'ASNB_MIN_MONTHLY' || a.interestMethod === 'LOWEST_MONTHLY_BALANCE') ? `<p class="text-[11px] text-teal-300">${loc('Min Monthly Bal:', '本月最低:')} ${fmtRM(a.lowestMonthlyBalance)} (${a.annualRate}%)</p>` : ''}
+                    <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300">${loc(a.subTypeEn, a.subTypeZh)}</span>
+                    <p class="text-xs sm:text-sm font-bold text-white mt-1.5 truncate">${loc(a.nameEn, a.nameZh)}</p>
+                    ${a.pillar === 'ASSET_LIQUID' ? `<p class="text-[11px] text-emerald-400 mt-0.5">${loc('Safe:', '可花:')} ${fmtRM(calcSafeToSpend(a))} • ${loc('Floor:', '底线:')} ${fmtRM(a.minBalanceLimit)}</p>` : ''}
+                    ${(a.interestMethod === 'ASNB_MIN_MONTHLY' || a.interestMethod === 'LOWEST_MONTHLY_BALANCE') ? `<p class="text-[11px] text-teal-300 mt-0.5">${loc('Min Monthly Bal:', '本月最低:')} ${fmtRM(a.lowestMonthlyBalance)} (${a.annualRate}%)</p>` : ''}
                   </div>
                   <div class="text-right shrink-0">
                     <p class="text-sm font-black text-white">${fmtRM(a.currentBalance)}</p>
-                    <div class="flex items-center justify-end gap-1 mt-1">
-                      <button onclick="event.stopPropagation(); openAccountHistoryDrillDown('${a.id}')" class="px-2 py-0.5 rounded-md bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-[10px] font-bold">
-                        📜 ${loc('History', '账单明细')}
+                    <div class="flex items-center justify-end gap-1 mt-1.5">
+                      <button onclick="event.stopPropagation(); openAccountHistoryDrillDown('${a.id}')" class="px-2 py-0.5 rounded-full bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-[10px] font-bold">
+                        📜 ${loc('History', '明细')}
                       </button>
-                      <span class="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
+                      <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
                         ${dict.editBtnLabel}
                       </span>
                     </div>
