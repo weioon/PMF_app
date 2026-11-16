@@ -1176,24 +1176,38 @@
       const newNameZh = document.getElementById('inp-edit-name-zh').value.trim() || newNameEn;
       const newFloor = Math.max(0, Number((parseFloat(document.getElementById('inp-edit-floor').value) || 0).toFixed(2)));
 
-      acc.nameEn = newNameEn;
-      acc.nameZh = newNameZh;
-      acc.currentBalance = newBalance;
-      acc.minBalanceLimit = newFloor;
+      const patch = {
+        nameEn: newNameEn,
+        nameZh: newNameZh,
+        currentBalance: newBalance,
+        minBalanceLimit: newFloor,
+        envelopes: acc.envelopes || []
+      };
 
       if (acc.pillar === 'ASSET_INVESTMENT' || acc.interestMethod !== 'NONE') {
         const manualLowest = parseFloat(document.getElementById('inp-edit-lowest-bal').value);
         if (!isNaN(manualLowest) && manualLowest >= 0) {
-          acc.lowestMonthlyBalance = Number(Math.min(acc.currentBalance, manualLowest).toFixed(2));
-        } else if (acc.currentBalance < (acc.lowestMonthlyBalance ?? acc.currentBalance)) {
-          acc.lowestMonthlyBalance = acc.currentBalance;
+          patch.lowestMonthlyBalanceOverride = Number(Math.min(newBalance, manualLowest).toFixed(2));
+          acc.lowestMonthlyBalance = patch.lowestMonthlyBalanceOverride;
         }
         const newRate = Math.max(0, parseFloat(document.getElementById('inp-edit-rate').value) || 0);
-        if (newRate !== acc.annualRate) {
-          acc.rateHistory = Array.isArray(acc.rateHistory) ? acc.rateHistory : [];
-          acc.rateHistory.push({ effectiveDate: todayStr(), rate: newRate });
-          acc.annualRate = newRate;
+        patch.annualRate = newRate;
+      }
+
+      if (window.PfmEngine && window.PfmEngine.updateAccountSettings) {
+        try {
+          window.PfmEngine.updateAccountSettings(state, acc.id, patch, { today: todayStr() });
+        } catch (e) {
+          acc.nameEn = newNameEn;
+          acc.nameZh = newNameZh;
+          acc.currentBalance = newBalance;
+          acc.minBalanceLimit = newFloor;
         }
+      } else {
+        acc.nameEn = newNameEn;
+        acc.nameZh = newNameZh;
+        acc.currentBalance = newBalance;
+        acc.minBalanceLimit = newFloor;
       }
 
       if (acc.pillar === 'INCOME_SOURCE' || acc.id === 'income-salary') {
@@ -1555,6 +1569,7 @@
         closeTxConfirmationModal();
         if (origin === 'NUMPAD') closeNumpadModal();
         if (origin === 'REPAY') closeRepaymentModal();
+        if (origin === 'ADD_INST') closeAddInstallmentModal();
         renderAll();
       } catch (err) {
         alert(err.message || 'Transaction error');
@@ -1808,25 +1823,43 @@
       if (!plan) return;
       const sched = plan.schedules.find(s => s.number === scheduleNum);
       if (!sched || sched.status === 'PAID' || sched.paid) return;
-      const liquidAcc = state.accounts.find(a => a.pillar === 'ASSET_LIQUID' && a.currentBalance >= sched.amount) || state.accounts.find(a => a.pillar === 'ASSET_LIQUID');
+      const linkedAcc = plan.linkedRepaymentAccountId ? state.accounts.find(a => a.id === plan.linkedRepaymentAccountId && a.pillar === 'ASSET_LIQUID') : null;
+      const liquidAcc = linkedAcc || state.accounts.find(a => a.pillar === 'ASSET_LIQUID' && a.currentBalance >= sched.amount) || state.accounts.find(a => a.pillar === 'ASSET_LIQUID');
       if (!liquidAcc) {
         alert(loc('Please add a liquid bank account with sufficient funds first.', '请先添加余额充足的银行账户。'));
         return;
       }
-      if (window.PfmEngine) {
-        try {
-          window.PfmEngine.payInstallment(state, {
-            planId: plan.id,
-            scheduleIds: [sched.id],
-            fromAccountId: liquidAcc.id,
-            date: todayStr()
-          }, { today: todayStr(), force: true });
-          saveToStorage();
-          renderAll();
-        } catch (err) {
-          alert(err.message);
+      const liabAcc = state.accounts.find(a => a.id === plan.liabilityAccountId);
+      const srcBefore = Number(liquidAcc.currentBalance) || 0;
+      const srcAfter = Number((srcBefore - sched.amount).toFixed(2));
+      const liabBefore = liabAcc ? Number(liabAcc.currentBalance) : 0;
+      const liabAfter = Math.max(0, Number((liabBefore - sched.amount).toFixed(2)));
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      openTxConfirmationModal({
+        origin: 'SLICE_PAY',
+        type: 'INSTALLMENT_PAYMENT',
+        typeBadgeEn: `Installment Slice #${sched.number}`,
+        typeBadgeZh: `分期还款 (第 ${sched.number} 期)`,
+        amount: sched.amount,
+        fee: 0,
+        accountSummaryEn: `${liquidAcc.nameEn} (${fmtRM(srcBefore)} → ${fmtRM(srcAfter)})  ➔  ${liabAcc ? liabAcc.nameEn : 'Liability'} (Debt: ${fmtRM(liabBefore)} → ${fmtRM(liabAfter)})`,
+        accountSummaryZh: `${liquidAcc.nameZh} (${fmtRM(srcBefore)} → ${fmtRM(srcAfter)})  ➔  ${liabAcc ? liabAcc.nameZh : '负债'} (负债: ${fmtRM(liabBefore)} → ${fmtRM(liabAfter)})`,
+        categoryLabelEn: `${plan.itemName} (Slice #${sched.number})`,
+        categoryLabelZh: `${plan.itemName} (第 ${sched.number} 期)`,
+        dateStr: `${todayStr()}, ${nowTimeStr}`,
+        noteStr: `${plan.itemName} #${sched.number} (${sched.dueDate || todayStr()})`,
+        commitFn: () => {
+          if (window.PfmEngine) {
+            window.PfmEngine.payInstallment(state, {
+              planId: plan.id,
+              scheduleIds: [sched.id],
+              fromAccountId: liquidAcc.id,
+              date: todayStr()
+            }, { today: todayStr(), force: true });
+          }
         }
-      }
+      });
     }
     function settleFriendReimbursement(id) {
       const item = state.reimbursements.find(r => r.id === id);
@@ -2236,7 +2269,7 @@
       const baseToday = new Date();
       for (let d = 0; d < 30; d++) {
         const dateObj = new Date(baseToday.getFullYear(), baseToday.getMonth(), baseToday.getDate() + d);
-        const fullIsoDate = dateObj.toISOString().slice(0, 10);
+        const fullIsoDate = todayStr(dateObj);
         const dateStr = fullIsoDate.slice(5, 10);
         const dayNum = dateObj.getDate();
         let eventLabels = [];
@@ -2710,8 +2743,7 @@
 
       const dueInp = document.getElementById('inp-inst-mode-b-due');
       if (dueInp) {
-        const today = new Date();
-        dueInp.value = today.toISOString().split('T')[0];
+        dueInp.value = todayStr();
       }
 
       setInstFormMode('A');
@@ -2773,46 +2805,84 @@
       const liabAccId = document.getElementById('inp-inst-liability-acc').value;
       const itemName = document.getElementById('inp-inst-item-name').value.trim() || 'Installment Item';
       if (!liabAccId) return;
+      const liabAcc = state.accounts.find(a => a.id === liabAccId);
+      const beforeBal = liabAcc ? Number(liabAcc.currentBalance) : 0;
+      const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      try {
-        if (currentInstFormMode === 'A') {
-          const totalAmt = Number(document.getElementById('inp-inst-total-amt').value);
-          const tenure = Number(document.getElementById('inp-inst-tenure').value);
-          const fee = Number(document.getElementById('inp-inst-fee').value) || 0;
-          const dueDay = Number(document.getElementById('inp-inst-due-day').value) || 5;
-          const paidCount = Number(document.getElementById('inp-inst-already-paid').value) || 0;
-
-          if (window.PfmEngine) {
-            window.PfmEngine.createInstallmentPurchase(state, {
-              liabilityAccountId: liabAccId,
-              itemName: itemName,
-              totalPrincipal: totalAmt,
-              tenureMonths: tenure,
-              monthlyFee: fee,
-              dueDay: dueDay,
-              alreadyPaidCount: paidCount
-            });
-          }
-        } else {
-          // Mode B: Direct Manual Entry
-          const amt = Number(document.getElementById('inp-inst-mode-b-amt').value);
-          const dueDate = document.getElementById('inp-inst-mode-b-due').value;
-
-          if (window.PfmEngine) {
-            window.PfmEngine.createManualMonthlyInstallment(state, {
-              liabilityAccountId: liabAccId,
-              itemName: itemName,
-              amount: amt,
-              dueDate: dueDate
-            });
-          }
+      if (currentInstFormMode === 'A') {
+        const totalAmt = Number(document.getElementById('inp-inst-total-amt').value);
+        const tenure = Number(document.getElementById('inp-inst-tenure').value) || 3;
+        const fee = Number(document.getElementById('inp-inst-fee').value) || 0;
+        const dueDay = Number(document.getElementById('inp-inst-due-day').value) || 5;
+        const paidCount = Number(document.getElementById('inp-inst-already-paid').value) || 0;
+        if (!(totalAmt > 0)) {
+          alert(loc('Please enter a valid positive total principal amount.', '请输入有效的分期总金额。'));
+          return;
         }
+        const slices = window.PfmEngine ? window.PfmEngine.splitPrincipal(totalAmt, tenure) : [totalAmt];
+        const unpaidOut = slices.slice(paidCount).reduce((s, x) => s + x + fee, 0);
+        const afterBal = Number((beforeBal + unpaidOut).toFixed(2));
 
-        saveToStorage();
-        closeAddInstallmentModal();
-        renderAll();
-      } catch (err) {
-        alert(err.message || 'Error creating installment purchase.');
+        openTxConfirmationModal({
+          origin: 'ADD_INST',
+          type: 'INSTALLMENT_PURCHASE',
+          typeBadgeEn: `Installment Plan (${tenure}M)`,
+          typeBadgeZh: `新增分期计划 (${tenure}期)`,
+          amount: totalAmt,
+          fee: fee,
+          accountSummaryEn: `${liabAcc ? liabAcc.nameEn : 'Liability'} (Debt: ${fmtRM(beforeBal)} → ${fmtRM(afterBal)})`,
+          accountSummaryZh: `${liabAcc ? liabAcc.nameZh : '负债账户'} (当前负债: ${fmtRM(beforeBal)} → 新增后负债: ${fmtRM(afterBal)})`,
+          categoryLabelEn: `${tenure} Months • Due Day ${dueDay}`,
+          categoryLabelZh: `共 ${tenure} 期 • 每月 ${dueDay} 日到期`,
+          dateStr: `${todayStr()}, ${nowTimeStr}`,
+          noteStr: itemName,
+          commitFn: () => {
+            if (window.PfmEngine) {
+              window.PfmEngine.createInstallmentPurchase(state, {
+                liabilityAccountId: liabAccId,
+                itemName: itemName,
+                totalPrincipal: totalAmt,
+                tenureMonths: tenure,
+                monthlyFee: fee,
+                dueDay: dueDay,
+                alreadyPaidCount: paidCount
+              });
+            }
+          }
+        });
+      } else {
+        const amt = Number(document.getElementById('inp-inst-mode-b-amt').value);
+        const dueDate = document.getElementById('inp-inst-mode-b-due').value || todayStr();
+        if (!(amt > 0)) {
+          alert(loc('Please enter a valid positive monthly bill amount.', '请输入有效的当月账单金额。'));
+          return;
+        }
+        const afterBal = Number((beforeBal + amt).toFixed(2));
+
+        openTxConfirmationModal({
+          origin: 'ADD_INST',
+          type: 'INSTALLMENT_PURCHASE',
+          typeBadgeEn: 'Monthly Liability Bill (1M)',
+          typeBadgeZh: '单月分期账单 (1期)',
+          amount: amt,
+          fee: 0,
+          accountSummaryEn: `${liabAcc ? liabAcc.nameEn : 'Liability'} (Debt: ${fmtRM(beforeBal)} → ${fmtRM(afterBal)})`,
+          accountSummaryZh: `${liabAcc ? liabAcc.nameZh : '负债账户'} (当前负债: ${fmtRM(beforeBal)} → 新增后负债: ${fmtRM(afterBal)})`,
+          categoryLabelEn: `Direct Monthly Entry (Due: ${dueDate})`,
+          categoryLabelZh: `直接录入月度账单 (到期: ${dueDate})`,
+          dateStr: `${todayStr()}, ${nowTimeStr}`,
+          noteStr: itemName,
+          commitFn: () => {
+            if (window.PfmEngine) {
+              window.PfmEngine.createManualMonthlyInstallment(state, {
+                liabilityAccountId: liabAccId,
+                itemName: itemName,
+                amount: amt,
+                dueDate: dueDate
+              });
+            }
+          }
+        });
       }
     }
 
@@ -3350,6 +3420,17 @@
       }).join('');
     }
 
+    function updateInspectModalFieldVisibility(typeVal) {
+      const fromWrap = document.getElementById('wrap-inspect-from-acc');
+      const toWrap = document.getElementById('wrap-inspect-to-acc');
+      const catWrap = document.getElementById('wrap-inspect-cat');
+      const feeWrap = document.getElementById('wrap-inspect-fee');
+      if (fromWrap) fromWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PAYMENT'));
+      if (toWrap) toWrap.classList.toggle('hidden', !(typeVal === 'INCOME' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PURCHASE' || typeVal === 'INSTALLMENT_PAYMENT'));
+      if (catWrap) catWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'INSTALLMENT_PURCHASE'));
+      if (feeWrap) feeWrap.classList.toggle('hidden', typeVal !== 'TRANSFER');
+    }
+
     function openInspectTransactionModal(txId) {
       const tx = state.transactions.find(t => t.id === txId);
       if (!tx) return;
@@ -3361,12 +3442,15 @@
       document.getElementById('inp-inspect-note').value = tx.note || '';
       document.getElementById('inp-inspect-fee').value = Number(tx.transferFee || 0).toFixed(2);
 
-      const allAccs = state.accounts.filter(a => a.pillar !== 'INCOME_SOURCE');
-      const fromWrap = document.getElementById('wrap-inspect-from-acc');
-      const toWrap = document.getElementById('wrap-inspect-to-acc');
-      const catWrap = document.getElementById('wrap-inspect-cat');
-      const feeWrap = document.getElementById('wrap-inspect-fee');
+      const typeWrap = document.getElementById('wrap-inspect-type');
+      const typeSel = document.getElementById('inp-inspect-type');
+      const isStandardSwitchable = tx.type === 'EXPENSE' || tx.type === 'INCOME' || tx.type === 'TRANSFER';
+      if (typeWrap && typeSel) {
+        typeWrap.classList.toggle('hidden', !isStandardSwitchable);
+        if (isStandardSwitchable) typeSel.value = tx.type;
+      }
 
+      const allAccs = state.accounts.filter(a => a.pillar !== 'INCOME_SOURCE');
       const fromSel = document.getElementById('inp-inspect-from-acc');
       const toSel = document.getElementById('inp-inspect-to-acc');
       const catSel = document.getElementById('inp-inspect-cat');
@@ -3375,11 +3459,7 @@
       toSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === tx.toAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
       catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${c.id === tx.categoryId ? 'selected' : ''}>${loc(c.nameEn, c.nameZh)}</option>`).join('');
 
-      fromWrap.classList.toggle('hidden', !(tx.type === 'EXPENSE' || tx.type === 'TRANSFER' || tx.type === 'INSTALLMENT_PAYMENT'));
-      toWrap.classList.toggle('hidden', !(tx.type === 'INCOME' || tx.type === 'TRANSFER' || tx.type === 'INSTALLMENT_PURCHASE' || tx.type === 'INSTALLMENT_PAYMENT'));
-      catWrap.classList.toggle('hidden', !(tx.type === 'EXPENSE' || tx.type === 'INSTALLMENT_PURCHASE'));
-      feeWrap.classList.toggle('hidden', tx.type !== 'TRANSFER');
-
+      updateInspectModalFieldVisibility(tx.type);
       document.getElementById('tx-inspect-modal').classList.remove('hidden');
     }
 
@@ -3400,27 +3480,44 @@
       const newFrom = document.getElementById('inp-inspect-from-acc').value;
       const newTo = document.getElementById('inp-inspect-to-acc').value;
       const newCat = document.getElementById('inp-inspect-cat').value;
+      const typeSel = document.getElementById('inp-inspect-type');
+      const isStandardSwitchable = tx.type === 'EXPENSE' || tx.type === 'INCOME' || tx.type === 'TRANSFER';
+      const targetType = (isStandardSwitchable && typeSel && typeSel.value) ? typeSel.value : tx.type;
 
       try {
         if (window.PfmEngine.EDITABLE_TYPES.includes(tx.type) && !tx.legacy && tx.params) {
           const patch = {
+            type: targetType,
             amount: newAmt,
             date: newDate,
             note: newNote
           };
-          if (tx.type === 'EXPENSE') {
+          if (targetType === 'EXPENSE') {
             patch.fromAccountId = newFrom;
             patch.categoryId = newCat;
             delete patch.descEn;
             delete patch.descZh;
-          } else if (tx.type === 'INCOME') {
+          } else if (targetType === 'INCOME') {
             patch.toAccountId = newTo;
             delete patch.descEn;
             delete patch.descZh;
-          } else if (tx.type === 'TRANSFER') {
+          } else if (targetType === 'TRANSFER') {
             patch.fromAccountId = newFrom;
             patch.toAccountId = newTo;
             patch.transferFee = newFee;
+            delete patch.descEn;
+            delete patch.descZh;
+          } else if (targetType === 'INSTALLMENT_PAYMENT') {
+            patch.fromAccountId = newFrom;
+            patch.toAccountId = newTo;
+            patch.customAmount = newAmt;
+            delete patch.descEn;
+            delete patch.descZh;
+          } else if (targetType === 'INSTALLMENT_PURCHASE') {
+            patch.liabilityAccountId = newTo;
+            patch.totalPrincipal = newAmt;
+            patch.categoryId = newCat;
+            if (newNote) patch.itemName = newNote;
             delete patch.descEn;
             delete patch.descZh;
           }
@@ -4081,6 +4178,15 @@
       </div>
 
       <div class="space-y-3 text-xs">
+        <div id="wrap-inspect-type">
+          <label class="block text-slate-400 mb-1 font-semibold">Transaction Type (交易类型)</label>
+          <select id="inp-inspect-type" onchange="updateInspectModalFieldVisibility(this.value)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-emerald-300 font-bold text-xs">
+            <option value="EXPENSE">Expense (支出)</option>
+            <option value="INCOME">Income (收入)</option>
+            <option value="TRANSFER">Transfer (内部转账)</option>
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block text-emerald-300 font-bold mb-1">Amount (金额 RM)</label>

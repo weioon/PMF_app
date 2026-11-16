@@ -258,6 +258,61 @@ function createMockBrowserStorageEnv() {
     assert.strictEqual(state.accounts.find(a => a.id === 'bank-a').currentBalance, 500.00, 'Bank A remains RM 500.00');
   });
 
+  verify('Bug Check 2.D (Reclassify Expense -> Transfer & Edit Batch Installment Payment in History Inspector)', () => {
+    const state = Engine.createEmptyData();
+    Engine.createAccount(state, { id: 'bank-a', pillar: 'ASSET_LIQUID', nameEn: 'Bank A', currentBalance: 1000 }, { today: '2026-11-10' });
+    Engine.createAccount(state, { id: 'bank-b', pillar: 'ASSET_LIQUID', nameEn: 'Bank B', currentBalance: 500 }, { today: '2026-11-10' });
+    Engine.createAccount(state, { id: 'spaylater', pillar: 'LIABILITY', nameEn: 'SPayLater', currentBalance: 0 }, { today: '2026-11-10' });
+
+    // 1. Create an Expense of RM 100 on Bank A (1000 -> 900), then reclassify it to a Transfer from Bank A -> Bank B (RM 100)
+    const expTx = Engine.postTransaction(state, {
+      type: 'EXPENSE',
+      fromAccountId: 'bank-a',
+      amount: 100,
+      date: '2026-11-10',
+      note: 'Misclassified transfer'
+    }, { today: '2026-11-10' });
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-a').currentBalance, 900.00);
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-b').currentBalance, 500.00);
+
+    const reclassified = Engine.editTransaction(state, expTx.id, {
+      type: 'TRANSFER',
+      fromAccountId: 'bank-a',
+      toAccountId: 'bank-b',
+      amount: 100,
+      transferFee: 0
+    }, { today: '2026-11-10' });
+    assert.strictEqual(reclassified.type, 'TRANSFER', 'Transaction reclassified to TRANSFER');
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-a').currentBalance, 900.00, 'Bank A remains 900 (-100)');
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-b').currentBalance, 600.00, 'Bank B increased to 600 (+100)');
+    assert.strictEqual(Engine.computeRollup(state, { today: '2026-11-10' }).monthSpend, 0.00, 'Monthly expense is now RM 0.00 after reclassifying to transfer');
+
+    // 2. Create a batch installment payment on Bank A, then edit it in History to pay from Bank B instead
+    Engine.createManualMonthlyInstallment(state, {
+      liabilityAccountId: 'spaylater',
+      itemName: 'Nov SPayLater Bill',
+      amount: 80.00,
+      dueDate: '2026-11-10'
+    }, { today: '2026-11-10' });
+    const batchPayTx = Engine.payInstallmentsBatch(state, {
+      fromAccountId: 'bank-a',
+      liabilityAccountId: 'spaylater',
+      mode: 'CURRENT',
+      ym: '2026-11',
+      date: '2026-11-10'
+    }, { today: '2026-11-10' });
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-a').currentBalance, 820.00, 'Bank A paid RM 80 (900 -> 820)');
+    assert.strictEqual(state.accounts.find(a => a.id === 'spaylater').currentBalance, 0.00, 'SPayLater settled to RM 0');
+
+    Engine.editTransaction(state, batchPayTx.id, {
+      fromAccountId: 'bank-b',
+      amount: 80.00
+    }, { today: '2026-11-10' });
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-a').currentBalance, 900.00, 'Bank A refunded back to 900');
+    assert.strictEqual(state.accounts.find(a => a.id === 'bank-b').currentBalance, 520.00, 'Bank B deducted by 80 (600 -> 520)');
+    assert.strictEqual(state.accounts.find(a => a.id === 'spaylater').currentBalance, 0.00, 'SPayLater remains settled at RM 0');
+  });
+
   // =========================================================================
   // 3. SPAYLATER & INSTALLMENT ENGINE EDGE-CASE TEST
   // =========================================================================

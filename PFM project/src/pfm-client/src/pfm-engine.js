@@ -452,11 +452,25 @@
    */
   function deleteAccount(data, id) {
     return atomic(data, () => {
-      requireAccount(data, id);
+      const target = requireAccount(data, id);
       data.accounts = data.accounts.filter((a) => a.id !== id);
       data.transactions = data.transactions.filter((t) => t.fromAccountId !== id && t.toAccountId !== id && t.accountId !== id);
       data.installmentPlans = data.installmentPlans.filter((p) => p.liabilityAccountId !== id);
+      data.installmentPlans.forEach((p) => {
+        if (p.linkedRepaymentAccountId === id) p.linkedRepaymentAccountId = null;
+      });
       data.asnbSnapshots = data.asnbSnapshots.filter((s) => s.accountId !== id);
+      if (data.notificationState && data.notificationState.packageAccountMap) {
+        Object.keys(data.notificationState.packageAccountMap).forEach((pkg) => {
+          if (data.notificationState.packageAccountMap[pkg] === id) {
+            delete data.notificationState.packageAccountMap[pkg];
+          }
+        });
+      }
+      if (target.pillar === 'INCOME_SOURCE') {
+        const remInc = data.accounts.filter((a) => a.pillar === 'INCOME_SOURCE').reduce((s, a) => s + toCents(a.currentBalance), 0);
+        data.netMonthlyIncome = fromCents(remInc);
+      }
       return true;
     });
   }
@@ -604,12 +618,15 @@
       case 'BALANCE_ADJUSTMENT': {
         const acc = requireAccount(data, p.accountId || p.toAccountId);
         const newBal = parseNonNegative(p.newBalance, 'INVALID_BALANCE');
-        const delta = toCents(newBal) - toCents(acc.currentBalance);
+        const prevBal = acc.currentBalance;
+        const delta = toCents(newBal) - toCents(prevBal);
         if (delta === 0) throw new PfmError('NO_CHANGE');
         effects.push({ accountId: acc.id, deltaCents: delta });
         tx.amount = fromCents(Math.abs(delta));
         tx.toAccountId = acc.id;
-        tx.meta = { previousBalance: acc.currentBalance, newBalance: newBal };
+        tx.meta = { previousBalance: prevBal, newBalance: newBal };
+        tx.descEn = p.descEn || `Balance Adjustment: ${acc.nameEn} (RM ${prevBal.toFixed(2)} -> RM ${newBal.toFixed(2)})`;
+        tx.descZh = p.descZh || `余额调整：${acc.nameZh} (RM ${prevBal.toFixed(2)} -> RM ${newBal.toFixed(2)})`;
         opts = Object.assign({}, opts, { force: true });
         break;
       }
@@ -620,6 +637,8 @@
         tx.amount = amount;
         tx.toAccountId = to.id;
         tx.source = p.source || 'SYSTEM';
+        tx.descEn = p.descEn || `Daily Compound Interest Credited to ${to.nameEn}`;
+        tx.descZh = p.descZh || `复利利息入账至 ${to.nameZh}`;
         break;
       }
       case 'INSTALLMENT_PURCHASE': {
@@ -635,37 +654,66 @@
         tx.toAccountId = liab.id;
         tx.planId = plan.id;
         tx.categoryId = plan.categoryId;
+        tx.descEn = p.descEn || `Installment Plan: ${plan.itemName} (${plan.tenureMonths}M on ${liab.nameEn})`;
+        tx.descZh = p.descZh || `新增分期计划：${plan.itemName}（${plan.tenureMonths}期 • ${liab.nameZh}）`;
         tx.meta = { outstanding: fromCents(outstanding) };
         break;
       }
       case 'INSTALLMENT_PAYMENT': {
-        const plan = data.installmentPlans.find((pl) => pl.id === p.planId);
-        if (!plan) throw new PfmError('PLAN_NOT_FOUND');
-        const liab = requireAccount(data, plan.liabilityAccountId);
         const from = requireAccount(data, p.fromAccountId);
         if (from.pillar !== 'ASSET_LIQUID' && from.pillar !== 'ASSET_INVESTMENT') throw new PfmError('INVALID_PAYMENT_SOURCE');
         const ids = Array.isArray(p.scheduleIds) ? p.scheduleIds : [];
         if (!ids.length) throw new PfmError('SCHEDULE_NOT_FOUND');
-        const rows = ids.map((sid) => {
-          const r = plan.schedules.find((x) => x.id === sid);
+
+        const matchedPairs = [];
+        ids.forEach((sid) => {
+          let foundPlan = p.planId ? data.installmentPlans.find((pl) => pl.id === p.planId && (pl.schedules || []).some((x) => x.id === sid)) : null;
+          if (!foundPlan) {
+            foundPlan = data.installmentPlans.find((pl) => (pl.schedules || []).some((x) => x.id === sid));
+          }
+          if (!foundPlan) throw new PfmError('PLAN_NOT_FOUND');
+          const r = foundPlan.schedules.find((x) => x.id === sid);
           if (!r) throw new PfmError('SCHEDULE_NOT_FOUND');
           if (r.status !== 'UNPAID') throw new PfmError('SCHEDULE_ALREADY_PAID', { number: r.number });
-          return r;
+          matchedPairs.push({ plan: foundPlan, row: r });
         });
+
+        const primaryPlan = matchedPairs[0].plan;
+        const liab = requireAccount(data, p.liabilityAccountId || p.toAccountId || primaryPlan.liabilityAccountId);
+        const rows = matchedPairs.map((m) => m.row);
         const principal = rows.reduce((s, r) => s + toCents(r.principal), 0);
         const fees = rows.reduce((s, r) => s + toCents(r.fee), 0);
         const waive = !!p.waiveFees && rows.length > 1;
-        const cash = principal + (waive ? 0 : fees);
-        const reduction = principal + fees;
+        let cash = principal + (waive ? 0 : fees);
+        let reduction = principal + fees;
+        if (p.customAmount !== undefined && p.customAmount !== null && p.customAmount !== '') {
+          cash = toCents(parseAmount(p.customAmount));
+          reduction = cash;
+        } else if (p.amount !== undefined && p.amount !== null && p.amount !== '') {
+          cash = toCents(parseAmount(p.amount));
+          reduction = cash;
+        }
         effects.push({ accountId: from.id, deltaCents: outflowCents(from, cash) });
         effects.push({ accountId: liab.id, deltaCents: -reduction });
-        rows.forEach((r) => { r.status = 'PAID'; r.paid = true; r.paidTxId = tx.id; r.paidDate = date; });
-        plan.status = plan.schedules.some((r) => r.status === 'UNPAID') ? 'ACTIVE' : 'COMPLETED';
+        const touchedPlans = new Set();
+        matchedPairs.forEach(({ plan, row }) => {
+          row.status = 'PAID';
+          row.paid = true;
+          row.paidTxId = tx.id;
+          row.paidDate = date;
+          touchedPlans.add(plan);
+        });
+        touchedPlans.forEach((pl) => {
+          pl.status = pl.schedules.some((r) => r.status === 'UNPAID') ? 'ACTIVE' : 'COMPLETED';
+        });
         tx.amount = fromCents(cash);
         tx.fromAccountId = from.id;
         tx.toAccountId = liab.id;
-        tx.planId = plan.id;
+        tx.planId = primaryPlan.id;
+        tx.planIds = Array.from(touchedPlans).map((pl) => pl.id);
         tx.scheduleIds = rows.map((r) => r.id);
+        tx.descEn = p.descEn || `Installment Repayment: ${from.nameEn} -> ${liab.nameEn} (RM ${fromCents(cash).toFixed(2)})`;
+        tx.descZh = p.descZh || `分期还款: ${from.nameZh} -> ${liab.nameZh} (RM ${fromCents(cash).toFixed(2)})`;
         tx.meta = { waivedFees: waive ? fromCents(fees) : 0, earlySettlement: rows.length > 1 };
         break;
       }
@@ -742,18 +790,23 @@
       if (!old) throw new PfmError('TX_NOT_FOUND');
       if (old.legacy || !old.params || !EDITABLE_TYPES.includes(old.type)) throw new PfmError('TX_NOT_EDITABLE');
       const normalizedPatch = Object.assign({}, patch);
-      if (old.type === 'EXPENSE' && normalizedPatch.accountId && !normalizedPatch.fromAccountId) {
+      const nextType = (normalizedPatch.type && EDITABLE_TYPES.includes(normalizedPatch.type)) ? normalizedPatch.type : old.type;
+      if (nextType === 'EXPENSE' && normalizedPatch.accountId && !normalizedPatch.fromAccountId) {
         normalizedPatch.fromAccountId = normalizedPatch.accountId;
       }
-      if (old.type === 'INCOME' && normalizedPatch.accountId && !normalizedPatch.toAccountId) {
+      if (nextType === 'INCOME' && normalizedPatch.accountId && !normalizedPatch.toAccountId) {
         normalizedPatch.toAccountId = normalizedPatch.accountId;
       }
       const merged = Object.assign({}, old.params, normalizedPatch, {
-        id: old.id, createdAt: old.createdAt, type: (normalizedPatch.type && EDITABLE_TYPES.includes(normalizedPatch.type)) ? normalizedPatch.type : old.type, source: old.source,
+        id: old.id, createdAt: old.createdAt, type: nextType, source: old.source,
         notifHash: old.notifHash, linkedNotifHashes: old.linkedNotifHashes
       });
-      if (old.type === 'INSTALLMENT_PURCHASE') merged.planId = old.planId; // keep plan identity
-      if (old.type === 'INSTALLMENT_PAYMENT') merged.scheduleIds = old.scheduleIds;
+      if (nextType === 'INSTALLMENT_PURCHASE') merged.planId = old.planId; // keep plan identity
+      if (nextType === 'INSTALLMENT_PAYMENT') {
+        merged.scheduleIds = old.scheduleIds;
+        merged.planId = old.planId;
+        merged.liabilityAccountId = normalizedPatch.toAccountId || old.toAccountId;
+      }
       reverseTransactionInternal(data, old, today);
       return postTransactionInternal(data, merged, opts);
     });
@@ -958,6 +1011,16 @@
           row.paid = true;
           row.paidDate = row.paidDate || today;
         } else if (st === 'PENDING' || st === 'UNPAID') {
+          if (row.paidTxId) {
+            const paidTx = findTx(data, row.paidTxId);
+            if (paidTx) {
+              paidTx.scheduleIds = (paidTx.scheduleIds || []).filter((sid) => sid !== row.id);
+              const liabEf = (paidTx.effects || []).find((ef) => ef.accountId === plan.liabilityAccountId);
+              if (liabEf && liabEf.deltaCents < 0) {
+                liabEf.deltaCents = Math.min(0, liabEf.deltaCents + toCents(row.amount));
+              }
+            }
+          }
           row.status = 'UNPAID';
           row.paid = false;
           delete row.paidDate;
@@ -1474,8 +1537,19 @@
         planId: targetSchedules[0] ? targetSchedules[0].plan.id : null,
         planIds: Array.from(paidPlanIds),
         scheduleIds: paidScheduleIds,
+        note: String(input.note || '').slice(0, 200),
         effects,
-        params: Object.assign({}, input),
+        params: Object.assign({}, input, {
+          id: txId,
+          type: 'INSTALLMENT_PAYMENT',
+          fromAccountId: fromAcc.id,
+          toAccountId: liabAcc.id,
+          liabilityAccountId: liabAcc.id,
+          planId: targetSchedules[0] ? targetSchedules[0].plan.id : null,
+          scheduleIds: paidScheduleIds,
+          date: txDate,
+          amount: fromCents(totalPayCents)
+        }),
         descEn: 'Installment Repayment: ' + fromAcc.nameEn + ' -> ' + liabAcc.nameEn + ' (RM ' + fromCents(totalPayCents).toFixed(2) + ')',
         descZh: '分期还款: ' + fromAcc.nameZh + ' -> ' + liabAcc.nameZh + ' (RM ' + fromCents(totalPayCents).toFixed(2) + ')'
       };
