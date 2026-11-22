@@ -2345,9 +2345,12 @@
   const CREDIT_WORDS = ['received', 'receive', 'credited', 'deposit', 'refund', 'cashback received', 'transferred to you', 'money in',
     'diterima', 'terima', 'masuk', 'dikreditkan', '收到', '到账', '存入', '退款'];
   const DEBIT_WORDS = ['paid', 'payment', 'spent', 'debited', 'deducted', 'purchase', 'transfer to', 'transferred', 'reloaded', 'reload', 'sent', 'charged', 'withdraw', 'successful', 'successfully', 'berjaya',
+    'duitnow', 'qrpay', 'paydirect', 'rfid', 'auto-debit', 'autodebit', 'billed', 'top-up', 'top up', 'topup', 'sale', 'transaksi', 'bayar', 'tol',
     'bayaran', 'dibayar', 'pembayaran', 'potongan', 'pindahan', '支付', '付款', '扣款', '消费', '转出', '成功'];
   const NON_TX_WORDS = ['otp', 'tac', 'one-time', 'verification code', 'promo', 'voucher', 'cashback voucher', 'spend rm', 'get rm', 'up to rm', 'up to ', 'win ', 'reward', 'enjoy', 'offer', 'kod pengesahan', '验证码', '优惠'];
-  const CONFIRMED_TX_VERBS = ['paid', 'deducted', 'spent', 'debited', 'successful', 'successfully', 'transferred', 'reloaded', 'berjaya', 'received', 'credited', 'refund', 'payment', 'purchase', 'sent', 'charged', 'withdraw', 'diterima', 'dibayar', 'potongan', '支付', '付款', '扣款', '消费', '收到', '到账'];
+  const CONFIRMED_TX_VERBS = ['paid', 'deducted', 'spent', 'debited', 'successful', 'successfully', 'transferred', 'reloaded', 'berjaya', 'received', 'credited', 'refund', 'payment', 'purchase', 'sent', 'charged', 'withdraw',
+    'duitnow', 'qrpay', 'paydirect', 'rfid', 'auto-debit', 'autodebit', 'billed', 'top-up', 'top up', 'topup', 'sale', 'transaksi', 'bayar', 'tol',
+    'diterima', 'dibayar', 'potongan', '支付', '付款', '扣款', '消费', '收到', '到账'];
 
   function parseNotification(n) {
     const notifObj = typeof n === 'string' ? { text: n } : (n || {});
@@ -2359,7 +2362,7 @@
       return { isTransaction: false, reason: 'PROMO_OR_OTP', text };
     }
     if (!hasConfirmedVerb) return { isTransaction: false, reason: 'NO_CONFIRMED_VERB', text };
-    const m = text.match(/(?:RM|MYR)\s?([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/i);
+    const m = text.match(/(?:RM|MYR)[\s:]*([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/i);
     if (!m) return { isTransaction: false, reason: 'NO_AMOUNT', text };
     const amount = round2(Number(m[1].replace(/,/g, '')));
     if (!(amount > 0)) return { isTransaction: false, reason: 'INVALID_AMOUNT', text };
@@ -2411,7 +2414,33 @@
     ) || null;
   }
 
-  function matchAccountForPackage(data, pkg, text) {
+  const PKG_KEYWORD_HINTS = {
+    'my.com.tngdigital.ewallet': ['tng_ewallet', "touch 'n go", 'touch n go', 'tng', 'ewallet', '电子钱包'],
+    'com.maybank2u.life': ['maybank', 'mae', 'm2u', '马来亚'],
+    'com.maybank2u.m2umobile': ['maybank', 'mae', 'm2u', '马来亚'],
+    'com.cimbmalaysia': ['cimb', 'octo', '联昌'],
+    'my.com.cimb.octo': ['cimb', 'octo', '联昌'],
+    'com.cimb.cimbocto': ['cimb', 'octo', '联昌'],
+    'my.com.gxbank.app': ['gxbank', 'gx bank'],
+    'com.gxbank.app': ['gxbank', 'gx bank'],
+    'com.rytbank.app': ['ryt', 'ryt bank'],
+    'my.com.ytl.rytbank': ['ryt', 'ryt bank'],
+    'com.shopee.my': ['spaylater', 'shopee'],
+    'com.grabtaxi.passenger': ['grab', 'grabpay'],
+    'my.com.myboost': ['boost'],
+    'my.com.boostbank.app': ['boost bank'],
+    'my.com.aeonbank.app': ['aeon bank', 'aeon'],
+    'my.com.publicbank.pbengage': ['public bank', 'pbe', '大众银行'],
+    'com.pbebank.pbengage': ['public bank', 'pbe', '大众银行'],
+    'my.com.hongleongconnect.mobilebanking': ['hong leong', 'hlb', '丰隆'],
+    'my.com.hongleongconnect.mobileconnect': ['hong leong', 'hlb', '丰隆'],
+    'com.rhbgroup.rhbmobilebanking': ['rhb', '兴业'],
+    'com.ambank.ambankonline': ['ambank', '大马银行'],
+    'com.bankislam.bimbmobile': ['bank islam', '伊斯兰'],
+    'com.bigpayme.bigpay': ['bigpay']
+  };
+
+  function matchAccountForPackage(data, pkg, text, catalog) {
     if (pkg && data.notificationState && data.notificationState.packageAccountMap && data.notificationState.packageAccountMap[pkg]) {
       const mapped = findAccount(data, data.notificationState.packageAccountMap[pkg]);
       if (mapped) return mapped;
@@ -2428,11 +2457,29 @@
       });
       return best;
     }
-    // Fallback when packageName is omitted (e.g. direct text notification test)
+    // Match against catalog code or account name keywords when user created account manually without androidPackages array
+    const cat = getCatalog(catalog);
+    const catItem = (pkg || text) && cat ? cat.matchNotification(pkg, text) : null;
+    if (catItem) {
+      const byCode = data.accounts.find((a) => a.catalogCode === catItem.code);
+      if (byCode) return byCode;
+    }
+    if (pkg && PKG_KEYWORD_HINTS[pkg]) {
+      const hints = PKG_KEYWORD_HINTS[pkg];
+      const byHint = data.accounts.find((a) => {
+        if (a.pillar === 'INCOME_SOURCE') return false;
+        const hay = `${a.catalogCode || ''} ${a.nameEn || ''} ${a.nameZh || ''} ${a.subTypeEn || ''}`.toLowerCase();
+        if (pkg === 'my.com.tngdigital.ewallet' && /nfc/.test(hay)) return false;
+        return hints.some((h) => hay.includes(h));
+      });
+      if (byHint) return byHint;
+    }
+    // Fallback when packageName is omitted or matches account name in notification text
     const lower = String(text || '').toLowerCase();
     for (const a of data.accounts) {
-      const kws = (a.notificationKeywords || []).concat([a.nameEn]);
-      if (kws.some((k) => k && lower.includes(String(k).toLowerCase()))) return a;
+      if (a.pillar === 'INCOME_SOURCE') continue;
+      const kws = (a.notificationKeywords || []).concat([a.nameEn, a.nameZh]);
+      if (kws.some((k) => k && String(k).trim().length >= 3 && lower.includes(String(k).toLowerCase()))) return a;
     }
     if (!pkg) {
       const tng = findTngEwalletAccount(data);
@@ -2486,8 +2533,12 @@
 
       // Special Case: TnG NFC Card Reload -> Atomic TRANSFER from TnG eWallet to TnG NFC Card
       if (parsed.direction === 'TRANSFER' && parsed.transferTargetCode === 'TNG_NFC') {
-        const fromAcc = findTngEwalletAccount(data) || matchAccountForPackage(data, pkg, parsed.text);
-        const toAcc = findTngNfcAccount(data);
+        let fromAcc = findTngEwalletAccount(data) || matchAccountForPackage(data, pkg, parsed.text, catalog);
+        let toAcc = findTngNfcAccount(data);
+        if (opts && opts.autoCreateIfUnmapped && catalog) {
+          if (!fromAcc) fromAcc = createAccountFromCatalog(data, 'TNG_EWALLET', { currentBalance: 0, needsBalanceSetup: true }, catalog, { today });
+          if (!toAcc) toAcc = createAccountFromCatalog(data, 'TNG_NFC', { currentBalance: 0, needsBalanceSetup: true }, catalog, { today });
+        }
         if (fromAcc && toAcc && fromAcc.id !== toAcc.id) {
           const tx = postTransactionInternal(data, {
             type: 'TRANSFER',
@@ -2505,7 +2556,15 @@
         }
       }
 
-      const acc = matchAccountForPackage(data, notif.packageName ? pkg : '', parsed.text);
+      let acc = matchAccountForPackage(data, notif.packageName ? pkg : '', parsed.text, catalog);
+      if (!acc && opts && opts.autoCreateIfUnmapped) {
+        const item = catalog ? catalog.matchNotification(pkg, parsed.text) : null;
+        if (item) {
+          acc = createAccountFromCatalog(data, item.code, { currentBalance: 0, needsBalanceSetup: true }, catalog, { today });
+        } else {
+          acc = data.accounts.find((a) => a.pillar === 'ASSET_LIQUID') || data.accounts.find((a) => a.pillar === 'LIABILITY') || null;
+        }
+      }
       if (!acc) {
         const item = catalog ? catalog.matchNotification(pkg, parsed.text) : null;
         if (item) {
@@ -2813,7 +2872,7 @@
     // roll-ups, analytics & guardrails
     safeToSpend, categorySpend, computeRollup, computeAnalytics, evaluateGuardrails,
     // notifications & smart categorization
-    parseNotification, ingestNotification, dismissDiscovery, linkPackageToAccount, setPackageAccountMapping, ignorePackage, fnv1a,
+    parseNotification, matchAccountForPackage, ingestNotification, dismissDiscovery, linkPackageToAccount, setPackageAccountMapping, ignorePackage, fnv1a,
     MERCHANT_CATEGORY_RULES, categorizeMerchant, learnMerchantCategory
   };
 });

@@ -2,8 +2,10 @@ package com.mypfm.app;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.service.notification.NotificationListenerService;
 import android.text.TextUtils;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
@@ -21,6 +23,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         sActiveInstance = new WeakReference<>(this);
+        ensureListenerRebound();
         if (this.bridge != null && this.bridge.getWebView() != null) {
             WebView webView = this.bridge.getWebView();
             webView.clearCache(true);
@@ -38,7 +41,25 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         sActiveInstance = new WeakReference<>(this);
+        ensureListenerRebound();
+        PfmNotificationListenerService.scanActiveNotificationsIfConnected();
         flushQueuedNotificationsToWebView();
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            final WebView webView = this.bridge.getWebView();
+            webView.postDelayed(this::flushQueuedNotificationsToWebView, 450);
+            webView.postDelayed(this::flushQueuedNotificationsToWebView, 1400);
+        }
+    }
+
+    private void ensureListenerRebound() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                NotificationListenerService.requestRebind(
+                        new ComponentName(this, PfmNotificationListenerService.class)
+                );
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

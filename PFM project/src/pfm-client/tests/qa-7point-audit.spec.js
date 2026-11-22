@@ -9,7 +9,7 @@ const vm = require('vm');
 
 const Catalog = require('../src/pfm-catalog.js');
 const Engine = require('../src/pfm-engine.js');
-const { PfmLocalDatabase } = require('../src/local-db.js');
+const { PfmLocalDatabase, PfmDomainEngine } = require('../src/local-db.js');
 
 let passed = 0;
 let failed = 0;
@@ -837,6 +837,154 @@ function createMockBrowserStorageEnv() {
     const rollup = Engine.computeRollup(emptyState, { today: '2026-10-20' });
     assert.strictEqual(rollup.dsrPercent, 0, 'Rollup DSR % is 0 when income is 0 (no NaN/Infinity)');
     assert.strictEqual(rollup.netWorth, 0, 'Rollup Net Worth is 0 when accounts are empty');
+  });
+
+  verify('Test 6.3: Live HTML Script Execution, Button Click Handlers, Account History Drill-Down, SPayLater Edit Bill, & Native Notification Bridge Audit', () => {
+    const html = fs.readFileSync(path.join(__dirname, '../src/index.html'), 'utf8');
+    const idMatches = [...html.matchAll(/id=["']([^"']+)["']/g)].map(m => m[1]);
+    const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+    assert(scriptMatch, 'Inline script found in index.html');
+
+    const elements = {};
+    function makeEl(id) {
+      const classes = new Set(['hidden']);
+      return {
+        id,
+        value: '',
+        textContent: '',
+        innerHTML: '',
+        checked: false,
+        className: '',
+        style: {},
+        files: [],
+        classList: {
+          add: (...c) => c.forEach(x => classes.add(x)),
+          remove: (...c) => c.forEach(x => classes.delete(x)),
+          toggle: (c, force) => {
+            if (force === undefined) { if (classes.has(c)) classes.delete(c); else classes.add(c); }
+            else if (force) classes.add(c); else classes.delete(c);
+          },
+          contains: (c) => classes.has(c)
+        },
+        appendChild: () => {},
+        removeChild: () => {},
+        click: () => {}
+      };
+    }
+    idMatches.forEach(id => { elements[id] = makeEl(id); });
+
+    const storage = {};
+    let queuedNotifs = JSON.stringify([
+      { packageName: 'my.com.tngdigital.ewallet', title: 'Payment', text: 'You have paid RM 19.80 to ZUS COFFEE', postedAt: Date.now() }
+    ]);
+
+    const sandbox = {
+      console,
+      assert,
+      elements,
+      setQueuedNotifs: (v) => { queuedNotifs = v; },
+      setTimeout: () => {},
+      setInterval: () => {},
+      clearTimeout: () => {},
+      clearInterval: () => {},
+      alert: (msg) => { sandbox._lastAlert = msg; },
+      confirm: () => true,
+      prompt: () => 'Test',
+      PfmCatalog: Catalog,
+      PfmEngine: Engine,
+      PfmLocalDb: null,
+      PfmDomainEngine: PfmDomainEngine,
+      AndroidNotificationBridge: {
+        isNotificationListenerEnabled: () => true,
+        openNotificationListenerSettings: () => true,
+        drainPendingNotifications: () => { const r = queuedNotifs; queuedNotifs = '[]'; return r; }
+      },
+      localStorage: {
+        getItem: (k) => storage[k] || null,
+        setItem: (k, v) => { storage[k] = String(v); },
+        removeItem: (k) => { delete storage[k]; }
+      },
+      navigator: { clipboard: { writeText: () => Promise.resolve() } },
+      document: {
+        readyState: 'complete',
+        hidden: false,
+        body: makeEl('body'),
+        getElementById: (id) => {
+          if (!elements[id]) elements[id] = makeEl(id);
+          return elements[id];
+        },
+        createElement: (tag) => makeEl(tag),
+        querySelector: () => ({ value: 'CURRENT' }),
+        querySelectorAll: () => [],
+        addEventListener: () => {}
+      },
+      window: null
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+
+    vm.createContext(sandbox);
+    vm.runInContext(scriptMatch[1] + `
+      startDemoDataAction();
+      assert(state.accounts.length > 0, 'Demo accounts loaded');
+
+      // 1. Account History Drill-Down button on Home page
+      const firstAccId = state.accounts[0].id;
+      openAccountHistoryDrillDown(firstAccId);
+      assert.strictEqual(state.activeTab, 'history', 'Switched to history tab');
+      assert.strictEqual(historyFilters.accountId, firstAccId, 'Filtered to clicked account');
+      assert(elements['history-grouped-container'].innerHTML.length > 50, 'Transaction history ledger rendered data for account');
+
+      // 2. Date Range & Account Filter in Transaction History Ledger
+      elements['hist-filter-from'].value = '2026-01-01';
+      elements['hist-filter-to'].value = '2026-12-31';
+      handleHistoryFilterChange('DATE_RANGE');
+      assert.strictEqual(historyFilters.month, 'CUSTOM', 'Setting date range automatically switches month filter to CUSTOM');
+      assert(elements['history-grouped-container'].innerHTML.length > 50, 'Filtered history displays transactions');
+
+      // 3. SPayLater Edit Bill & Edit Plan modals
+      const plan = state.installmentPlans[0];
+      const sched = plan.schedules[0];
+      openEditScheduleBillModal(plan.id, sched.id);
+      assert(!elements['edit-schedule-bill-modal'].classList.contains('hidden'), 'Edit Schedule Bill modal opened');
+      elements['inp-edit-bill-amount'].value = '88.00';
+      elements['inp-edit-bill-notes'].value = 'Promo adjusted';
+      saveEditScheduleBillModal();
+      assert.strictEqual(plan.schedules[0].amount, 88.00, 'Schedule bill amount updated to RM 88.00');
+
+      openEditInstallmentPlanModal(plan.id);
+      assert(!elements['edit-installment-plan-modal'].classList.contains('hidden'), 'Edit Installment Plan modal opened');
+      closeEditInstallmentPlanModal();
+
+      // 4. All other modal buttons
+      openCategoryModal(null);
+      assert(!elements['category-edit-modal'].classList.contains('hidden'), 'Category modal opened');
+      closeCategoryModal();
+
+      openRecurringBillModal(null);
+      assert(!elements['recurring-bill-modal'].classList.contains('hidden'), 'Recurring bill modal opened');
+      closeRecurringBillModal();
+
+      openSalaryCreditModal();
+      assert(!elements['salary-credit-modal'].classList.contains('hidden'), 'Salary modal opened');
+      closeSalaryCreditModal();
+
+      openAddInstallmentModal();
+      assert(!elements['add-installment-modal'].classList.contains('hidden'), 'Add installment modal opened');
+      closeAddInstallmentModal();
+
+      openRepaymentModal();
+      assert(!elements['installment-repayment-modal'].classList.contains('hidden'), 'Repayment modal opened');
+      closeRepaymentModal();
+
+      // 5. Android Push Notification Bridge Auto-Tracking
+      setQueuedNotifs(JSON.stringify([
+        { packageName: 'my.com.tngdigital.ewallet', title: 'Payment', text: 'You have paid RM 23.40 to 99 SPEEDMART', postedAt: Date.now() + 300000 }
+      ]));
+      const txBefore = state.transactions.length;
+      flushNativeNotifications();
+      assert.strictEqual(state.transactions.length, txBefore + 1, 'Native notification drained and auto-recorded');
+    `, sandbox, { filename: 'index_inline.js' });
   });
 
   // =========================================================================

@@ -225,3 +225,4 @@ If you want to run MyPFM on iOS Safari or an Android browser without installing 
 3. On your phone browser, open `http://<YOUR-PC-IP>:8080`.
 4. Add to Home Screen (**Share → Add to Home Screen** on iOS, or **Menu → Install app** on Chrome/Android) for full-screen standalone PWA usage.
 5. Alternatively, build the static web bundle (`npm run build` inside `PFM project/src/pfm-client`) and deploy `dist/pfm-client/browser` to any HTTPS static host (a `vercel.json` configuration is included).
+

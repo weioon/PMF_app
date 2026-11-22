@@ -205,8 +205,12 @@
         this.putAll('meta', [
           { key: 'systemInitialized', value: true },
           { key: 'SYSTEM_INITIALIZED', value: true },
+          { key: 'v3DummyPurged', value: true },
           { key: 'lang', value: stateSnapshot.lang || 'en' },
           { key: 'netMonthlyIncome', value: stateSnapshot.netMonthlyIncome ?? 5000 },
+          { key: 'recurringBills', value: stateSnapshot.recurringBills || [] },
+          { key: 'notificationState', value: stateSnapshot.notificationState || null },
+          { key: 'settings', value: stateSnapshot.settings || null },
           { key: 'updatedAtUtc', value: nowIso }
         ])
       ]);
@@ -270,9 +274,12 @@
             transactions: transactions || [],
             asnbSnapshots: asnbSnapshots || [],
             installmentPlans: installmentPlans || [],
+            recurringBills: Array.isArray(metaMap.recurringBills) ? metaMap.recurringBills : ((lsParsed && Array.isArray(lsParsed.recurringBills)) ? lsParsed.recurringBills : []),
             categories: categories || [],
             reimbursements: reimbursements || [],
             taxBuckets: taxBuckets || [],
+            notificationState: metaMap.notificationState || (lsParsed && lsParsed.notificationState) || undefined,
+            settings: metaMap.settings || (lsParsed && lsParsed.settings) || undefined,
             lang: metaMap.lang || 'en',
             netMonthlyIncome: metaMap.netMonthlyIncome ?? 0
           };
@@ -347,9 +354,12 @@
           transactions: stateSnapshot.transactions || [],
           asnbSnapshots: stateSnapshot.asnbSnapshots || [],
           installmentPlans: stateSnapshot.installmentPlans || [],
+          recurringBills: stateSnapshot.recurringBills || [],
           categories: stateSnapshot.categories || [],
           reimbursements: stateSnapshot.reimbursements || [],
-          taxBuckets: stateSnapshot.taxBuckets || []
+          taxBuckets: stateSnapshot.taxBuckets || [],
+          notificationState: stateSnapshot.notificationState || undefined,
+          settings: stateSnapshot.settings || undefined
         }
       };
       return JSON.stringify(payload, null, 2);

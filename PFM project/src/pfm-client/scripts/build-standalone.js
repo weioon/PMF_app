@@ -32,6 +32,9 @@ console.log('==============================================================');
 console.log(' [1/3] Building 100% Standalone Offline Bundle (PWA + Android)');
 console.log('==============================================================');
 
+if (fs.existsSync(outDir)) {
+  fs.rmSync(outDir, { recursive: true, force: true });
+}
 fs.mkdirSync(outDir, { recursive: true });
 
 // Copy standalone app files (index.html, local-db.js, sw.js, manifest.json, assets/)
