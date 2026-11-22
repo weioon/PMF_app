@@ -984,6 +984,30 @@ function createMockBrowserStorageEnv() {
       const txBefore = state.transactions.length;
       flushNativeNotifications();
       assert.strictEqual(state.transactions.length, txBefore + 1, 'Native notification drained and auto-recorded');
+
+      // 6. Hidden Bug Regression Assertions (Numpad Preset -> Digit, Decimal Cap, Inspector Transfer Reclassify)
+      openNumpadModal('EXPENSE');
+      setNumpadQuickAmount('10');
+      assert.strictEqual(state.numpadRaw, '10.00', 'Preset set to 10.00');
+      pressNumpadKey('5');
+      assert.strictEqual(state.numpadRaw, '5', 'Tapping digit after preset replaces instead of appending');
+      pressNumpadKey('.');
+      pressNumpadKey('1');
+      pressNumpadKey('2');
+      pressNumpadKey('9');
+      assert.strictEqual(state.numpadRaw, '5.12', 'Numpad caps decimal precision at 2 places');
+      closeNumpadModal();
+
+      const expTx = state.transactions.find(t => t.type === 'EXPENSE');
+      if (expTx) {
+        openInspectTransactionModal(expTx.id);
+        assert.notStrictEqual(
+          elements['inp-inspect-from-acc'].value,
+          elements['inp-inspect-to-acc'].value,
+          'Inspector defaults From and To accounts to distinct accounts so reclassifying to TRANSFER succeeds'
+        );
+        closeInspectTransactionModal();
+      }
     `, sandbox, { filename: 'index_inline.js' });
   });
 

@@ -1038,7 +1038,12 @@
         const newAmt = parseAmount(patch.amountDue ?? patch.amount);
         const fee = round2(Number(row.fee || 0));
         row.amount = newAmt;
-        row.principal = fromCents(Math.max(0, toCents(newAmt) - toCents(fee)));
+        if (toCents(newAmt) < toCents(fee)) {
+          row.fee = newAmt;
+          row.principal = 0;
+        } else {
+          row.principal = fromCents(Math.max(0, toCents(newAmt) - toCents(fee)));
+        }
       }
       if (patch.dueDate !== undefined) {
         row.dueDate = parseDate(patch.dueDate);

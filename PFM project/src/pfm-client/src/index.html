@@ -1765,12 +1765,19 @@
 
     function ensureAccountBaselineHistoryAndCatalogBindings() {
       let changed = false;
-      // 1. Ensure every schedule row in installmentPlans has a deterministic id
+      // 1. Ensure every schedule row in installmentPlans has a deterministic id & normalized status
       (state.installmentPlans || []).forEach((p, pIdx) => {
         if (!p.id) { p.id = 'plan-' + (pIdx + 1); changed = true; }
         (p.schedules || []).forEach((s, sIdx) => {
           if (!s.number) s.number = sIdx + 1;
           if (!s.id) { s.id = 'sch-' + p.id + '-' + s.number; changed = true; }
+          const isPaidRow = s.paid === true || s.status === 'PAID' || s.status === 'PAID_BEFORE_APP';
+          const normStatus = isPaidRow ? (s.status === 'PAID_BEFORE_APP' ? 'PAID_BEFORE_APP' : 'PAID') : 'UNPAID';
+          if (s.status !== normStatus || s.paid !== isPaidRow) {
+            s.status = normStatus;
+            s.paid = isPaidRow;
+            changed = true;
+          }
         });
       });
 
@@ -1815,9 +1822,7 @@
         );
         const hasPlan = acc.pillar === 'LIABILITY' && (state.installmentPlans || []).some(p => p.liabilityAccountId === acc.id);
         if (!hasTx && !hasPlan) {
-          const baseDate = (acc.createdDate && /^\d{4}-\d{2}-\d{2}$/.test(acc.createdDate))
-            ? acc.createdDate
-            : (todayStr().slice(0, 7) + '-01');
+          const baseDate = todayStr().slice(0, 7) + '-01';
           state.transactions.push({
             id: 'tx-open-' + acc.id,
             type: 'BALANCE_ADJUSTMENT',
@@ -1833,7 +1838,7 @@
             descEn: `Opening Balance: ${acc.nameEn} (RM ${bal.toFixed(2)})`,
             descZh: `初始账户余额：${acc.nameZh || acc.nameEn} (RM ${bal.toFixed(2)})`,
             meta: { previousBalance: 0, newBalance: bal, isOpeningBalance: true },
-            effects: [],
+            effects: [{ accountId: acc.id, deltaCents: Math.round(bal * 100) }],
             params: null,
             legacy: false
           });
@@ -2119,6 +2124,9 @@
       } else {
         state.accounts = state.accounts.filter(a => a.id !== acc.id);
       }
+      if (state.npSourceAccountId === acc.id) state.npSourceAccountId = '';
+      if (state.npDestAccountId === acc.id) state.npDestAccountId = '';
+      if (historyFilters.accountId === acc.id) historyFilters.accountId = 'ALL';
       saveToStorage();
       closeEditAccountModal();
       renderAll();
@@ -2229,7 +2237,10 @@
       renderAll();
     }
 
+    let numpadPresetJustSet = true;
+
     function openNumpadModal() {
+      numpadPresetJustSet = true;
       document.getElementById('numpad-modal').classList.remove('hidden');
       renderNumpadModal();
     }
@@ -2240,6 +2251,7 @@
     }
     function setNumpadQuickAmount(val) {
       state.numpadRaw = Number(val).toFixed(2);
+      numpadPresetJustSet = true;
       const disp = document.getElementById('np-amount-display');
       if (disp) disp.textContent = state.numpadRaw;
     }
@@ -2256,17 +2268,23 @@
     function setNumpadMode(mode) {
       state.numpadMode = mode;
       if (mode === 'INSTALLMENT') state.numpadRaw = '150.00';
+      numpadPresetJustSet = true;
       renderNumpadModal();
     }
     function pressNumpadKey(k) {
       if (k === 'C') {
         state.numpadRaw = '0';
+        numpadPresetJustSet = false;
+      } else if (numpadPresetJustSet) {
+        state.numpadRaw = k === '.' ? '0.' : k;
+        numpadPresetJustSet = false;
       } else if (k === '.') {
         if (!state.numpadRaw.includes('.')) state.numpadRaw += '.';
       } else {
-        state.numpadRaw = state.numpadRaw === '0' || state.numpadRaw === '50.00' || state.numpadRaw === '150.00'
-          ? k
-          : state.numpadRaw + k;
+        if (state.numpadRaw.includes('.') && state.numpadRaw.split('.')[1].length >= 2) {
+          return;
+        }
+        state.numpadRaw = state.numpadRaw === '0' ? k : state.numpadRaw + k;
       }
       document.getElementById('np-amount-display').textContent = state.numpadRaw;
     }
@@ -4494,6 +4512,10 @@
       historyFilters.search = '';
       const mSel = document.getElementById('hist-filter-month');
       const tSel = document.getElementById('hist-filter-type');
+      if (historyFilters.accountId !== 'ALL' && !state.accounts.some(a => a.id === historyFilters.accountId)) {
+        historyFilters.accountId = 'ALL';
+      }
+
       const aSel = document.getElementById('hist-filter-account');
       const cSel = document.getElementById('hist-filter-category');
       const sInp = document.getElementById('hist-filter-search');
@@ -4512,6 +4534,10 @@
     function handleHistoryFilterChange(triggerSource) {
       const mSel = document.getElementById('hist-filter-month');
       const tSel = document.getElementById('hist-filter-type');
+      if (historyFilters.accountId !== 'ALL' && !state.accounts.some(a => a.id === historyFilters.accountId)) {
+        historyFilters.accountId = 'ALL';
+      }
+
       const aSel = document.getElementById('hist-filter-account');
       const cSel = document.getElementById('hist-filter-category');
       const sInp = document.getElementById('hist-filter-search');
@@ -4570,6 +4596,10 @@
           ...sortedMonths.map(ym => `<option value="${ym}" ${historyFilters.month === ym ? 'selected' : ''}>${ym}</option>`),
           `<option value="CUSTOM" ${historyFilters.month === 'CUSTOM' ? 'selected' : ''}>${loc('Custom Date Range...', '自定义日期范围...')}</option>`
         ].join('');
+      }
+
+      if (historyFilters.accountId !== 'ALL' && !state.accounts.some(a => a.id === historyFilters.accountId)) {
+        historyFilters.accountId = 'ALL';
       }
 
       const aSel = document.getElementById('hist-filter-account');
@@ -4789,7 +4819,7 @@
       const taxWrap = document.getElementById('wrap-inspect-tax');
       const feeWrap = document.getElementById('wrap-inspect-fee');
       if (fromWrap) fromWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PAYMENT'));
-      if (toWrap) toWrap.classList.toggle('hidden', !(typeVal === 'INCOME' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PURCHASE' || typeVal === 'INSTALLMENT_PAYMENT'));
+      if (toWrap) toWrap.classList.toggle('hidden', !(typeVal === 'INCOME' || typeVal === 'TRANSFER' || typeVal === 'INSTALLMENT_PURCHASE' || typeVal === 'INSTALLMENT_PAYMENT' || typeVal === 'BALANCE_ADJUSTMENT' || typeVal === 'INTEREST'));
       if (catWrap) catWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'INSTALLMENT_PURCHASE'));
       if (taxWrap) taxWrap.classList.toggle('hidden', !(typeVal === 'EXPENSE' || typeVal === 'INSTALLMENT_PURCHASE'));
       if (feeWrap) feeWrap.classList.toggle('hidden', typeVal !== 'TRANSFER');
@@ -4821,9 +4851,16 @@
       const taxSel = document.getElementById('inp-inspect-tax');
       const learnChk = document.getElementById('chk-inspect-learn-rule');
 
-      fromSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === tx.fromAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
-      toSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === tx.toAccountId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
-      catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${c.id === tx.categoryId ? 'selected' : ''}>${c.icon || ''} ${loc(c.nameEn, c.nameZh)}</option>`).join('');
+      const defaultFromId = tx.fromAccountId || (allAccs.find(a => a.id !== tx.toAccountId)?.id) || (allAccs[0]?.id) || '';
+      const defaultToId = tx.toAccountId || tx.accountId || (allAccs.find(a => a.id !== defaultFromId)?.id) || (allAccs[0]?.id) || '';
+      const defaultCatId = tx.categoryId || (state.categories[0]?.id) || '';
+
+      fromSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === defaultFromId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
+      fromSel.value = defaultFromId;
+      toSel.innerHTML = allAccs.map(a => `<option value="${a.id}" ${a.id === defaultToId ? 'selected' : ''}>${loc(a.nameEn, a.nameZh)} (${fmtRM(a.currentBalance)})</option>`).join('');
+      toSel.value = defaultToId;
+      catSel.innerHTML = state.categories.map(c => `<option value="${c.id}" ${c.id === defaultCatId ? 'selected' : ''}>${c.icon || ''} ${loc(c.nameEn, c.nameZh)}</option>`).join('');
+      catSel.value = defaultCatId;
       if (taxSel) taxSel.value = tx.taxCategoryCode || '';
       if (learnChk) learnChk.checked = tx.source === 'NOTIFICATION';
 
@@ -5346,6 +5383,12 @@
       const bill = (state.recurringBills || []).find(b => b.id === billId);
       if (!bill) return;
       const acc = state.accounts.find(a => a.id === (bill.fromAccountId || bill.toAccountId));
+      const beforeBal = acc ? Number(acc.currentBalance) : 0;
+      const afterBal = acc
+        ? (bill.type === 'INCOME'
+          ? (acc.pillar === 'LIABILITY' ? Number((beforeBal - bill.amount).toFixed(2)) : Number((beforeBal + bill.amount).toFixed(2)))
+          : (acc.pillar === 'LIABILITY' ? Number((beforeBal + bill.amount).toFixed(2)) : Number((beforeBal - bill.amount).toFixed(2))))
+        : 0;
       const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       openTxConfirmationModal({
         origin: 'RECURRING',
@@ -5354,8 +5397,8 @@
         typeBadgeZh: `周期账单 (${bill.type})`,
         amount: bill.amount,
         fee: 0,
-        accountSummaryEn: acc ? `${acc.nameEn} (${fmtRM(acc.currentBalance)})` : '-',
-        accountSummaryZh: acc ? `${acc.nameZh} (${fmtRM(acc.currentBalance)})` : '-',
+        accountSummaryEn: acc ? `${acc.nameEn} (Current Balance: ${fmtRM(beforeBal)} → Balance After: ${fmtRM(afterBal)})` : '-',
+        accountSummaryZh: acc ? `${acc.nameZh} (当前余额: ${fmtRM(beforeBal)} → 交易后余额: ${fmtRM(afterBal)})` : '-',
         categoryLabelEn: bill.nameEn,
         categoryLabelZh: bill.nameZh,
         dateStr: `${todayStr()}, ${nowTimeStr}`,
